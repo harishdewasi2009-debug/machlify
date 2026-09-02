@@ -1,0 +1,344 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Matchify — Find your spark</title>
+<link rel="stylesheet" href="/css/style.css">
+<link rel="manifest" href="/manifest.json">
+<meta name="theme-color" content="#FF4D6D">
+<style>
+  /* ---- extra styles for auth + wiring on top of the original design system ---- */
+  body.auth-active #app{ display:none !important; }
+  body.auth-active .bottom-nav{ display:none !important; }
+  body:not(.auth-active) #bootLoading{ display:none !important; }
+  #bootLoading{ height:100vh; height:100dvh; width:100vw; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:14px; }
+  #bootLoading .boot-logo{ font-size:44px; }
+  #bootLoading .boot-spinner{ width:26px; height:26px; border-radius:50%; border:3px solid var(--line); border-top-color:var(--flame1); animation:boot-spin .8s linear infinite; }
+  @keyframes boot-spin{ to{ transform:rotate(360deg); } }
+  /* Single-pane app view switching (overrides original multi-column desktop behavior for simplicity) */
+  #app{ }
+  .col.view{ display:none; }
+  .col.view.active{ display:flex; flex-direction:column; height:100%; width:100%; }
+  .chat-col.view.active{ flex-direction:row; }
+  .onb-wrap{ height:100vh; height:100dvh; width:100vw; display:flex; align-items:center; justify-content:center; padding:20px; }
+  .onb-inner{ width:100%; max-width:420px; }
+  .onb-screen{ display:none; }
+  .onb-screen.active{ display:block; }
+  .authcard{ background:var(--bg-alt); border:1px solid var(--line); border-radius:24px; padding:34px 28px; }
+  .onb-field small{ display:block; color:var(--text-faint); font-size:11.5px; margin-top:5px; }
+  .form-error{ background:rgba(255,84,112,.12); border:1px solid rgba(255,84,112,.4); color:#FF8AA0; padding:10px 14px; border-radius:12px; font-size:13px; margin-bottom:14px; display:none; }
+  .form-error.show{ display:block; }
+  .empty-state{ text-align:center; color:var(--text-faint); padding:60px 20px; font-size:14px; line-height:1.6; }
+  .loading-spin{ display:inline-block; width:16px; height:16px; border:2px solid rgba(255,255,255,.35); border-top-color:#fff; border-radius:50%; animation:spin .7s linear infinite; }
+  @keyframes spin{ to{ transform:rotate(360deg); } }
+  .onb-next[disabled] .loading-spin{ display:inline-block; }
+  .interest-chip{ display:inline-flex; align-items:center; padding:7px 13px; border-radius:20px; background:var(--card); border:1px solid var(--line); font-size:12.5px; font-weight:600; margin:0 6px 6px 0; cursor:pointer; color:var(--text-dim); }
+  .interest-chip.sel{ background:linear-gradient(120deg,var(--flame1),var(--flame2)); border-color:transparent; color:#fff; }
+  .swipe-empty{ text-align:center; color:var(--text-dim); }
+  .swipe-empty .big{ font-size:44px; margin-bottom:14px; }
+  .profile-view-inner{ max-width:480px; margin:0 auto; padding:10px 6px 40px; }
+  .pv-photo{ width:100%; aspect-ratio:1/1; border-radius:22px; background-size:cover; background-position:center; background-color:var(--card); margin-bottom:18px; display:flex; align-items:center; justify-content:center; color:var(--text-faint); font-size:40px; }
+  .pv-field{ margin-bottom:14px; }
+  .pv-field label{ display:block; font-size:12px; font-weight:700; color:var(--text-dim); margin-bottom:6px; }
+  .pv-field input, .pv-field textarea, .pv-field select{ width:100%; padding:12px 14px; border-radius:14px; background:var(--card); border:1px solid var(--line); color:var(--text); font-size:14px; outline:none; font-family:inherit; }
+  .pv-field textarea{ resize:vertical; min-height:70px; }
+
+  /* ---- AI features: bio generator, icebreakers, compatibility, translate ---- */
+  .ai-bio-row{ display:flex; gap:8px; margin:-6px 0 14px; flex-wrap:wrap; }
+  .ai-bio-row input{ flex:1 1 220px; padding:10px 12px; border-radius:12px; background:var(--card); border:1px solid var(--line); color:var(--text); font-size:13px; outline:none; }
+  .ai-bio-row select{ padding:10px 10px; border-radius:12px; background:var(--card); border:1px solid var(--line); color:var(--text); font-size:13px; }
+  .ai-bio-row button{ padding:10px 14px; border-radius:12px; font-weight:700; font-size:13px; color:#fff; background:linear-gradient(120deg,var(--flame1),var(--flame2)); white-space:nowrap; cursor:pointer; }
+  .compat-badge{ margin-left:auto; padding:5px 11px; border-radius:20px; font-size:12px; font-weight:800; background:linear-gradient(120deg,rgba(255,77,109,.16),rgba(255,77,109,.06)); color:var(--flame2); cursor:default; }
+  .icebreakers-row{ display:flex; gap:8px; flex-wrap:wrap; padding:8px 14px; border-top:1px solid var(--line); }
+  .icebreaker-chip{ padding:8px 12px; border-radius:16px; background:var(--card); border:1px solid var(--line); font-size:12.5px; cursor:pointer; max-width:100%; }
+  .icebreaker-chip:hover{ border-color:var(--flame2); color:var(--flame2); }
+  .bubble .translate-link{ display:block; font-size:11px; margin-top:4px; opacity:.75; cursor:pointer; text-decoration:underline; }
+  .bubble .translated-text{ display:block; margin-top:6px; padding-top:6px; border-top:1px dashed rgba(255,255,255,.25); font-style:italic; font-size:13px; }
+  .pv-save{ width:100%; padding:14px; border-radius:16px; font-weight:800; font-size:14.5px; color:#fff; margin-top:6px; }
+  .conv-empty{ flex:1; display:flex; align-items:center; justify-content:center; color:var(--text-faint); font-size:13.5px; text-align:center; padding:20px; }
+
+  /* ---- Google sign-in / divider ---- */
+  .auth-divider{ display:flex; align-items:center; gap:10px; margin:16px 0; color:var(--text-faint); font-size:12px; }
+  .auth-divider::before, .auth-divider::after{ content:''; flex:1; height:1px; background:var(--line); }
+  .google-btn{ width:100%; display:flex; align-items:center; justify-content:center; gap:10px; padding:12px 14px; border-radius:14px; background:#fff; color:#1f1f1f; font-weight:700; font-size:14px; border:1px solid var(--line); cursor:pointer; }
+  .google-btn svg{ width:18px; height:18px; }
+
+  /* ---- Premium / subscription ---- */
+  .plans-wrap{ max-width:980px; margin:0 auto; padding:10px 6px 40px; display:grid; grid-template-columns:1fr; gap:16px; }
+  @media (min-width:560px){ .plans-wrap{ grid-template-columns:1fr 1fr; } }
+  @media (min-width:900px){ .plans-wrap{ grid-template-columns:1fr 1fr 1fr 1fr; } }
+  .plan-card{ background:var(--bg-alt); border:1px solid var(--line); border-radius:20px; padding:24px 20px; display:flex; flex-direction:column; gap:10px; position:relative; }
+  .plan-card.reco{ border-color:transparent; background:linear-gradient(160deg, rgba(255,77,109,.12), var(--bg-alt) 55%); box-shadow:0 0 0 2px var(--flame2) inset; }
+  .plan-badge{ position:absolute; top:-11px; right:18px; background:linear-gradient(120deg,var(--flame1),var(--flame2)); color:#fff; font-size:11px; font-weight:800; padding:4px 10px; border-radius:20px; }
+  .plan-name{ font-weight:800; font-size:15px; }
+  .plan-strike{ color:var(--text-faint); text-decoration:line-through; font-size:13px; }
+  .plan-price{ font-size:28px; font-weight:800; }
+  .plan-price small{ font-size:13px; font-weight:600; color:var(--text-dim); }
+  .plan-exclusive{ display:inline-block; font-size:11px; font-weight:800; color:#fff; background:linear-gradient(120deg,var(--flame1),var(--flame2)); padding:3px 9px; border-radius:10px; width:fit-content; }
+  .plan-feat{ font-size:13px; color:var(--text-dim); line-height:1.7; margin:6px 0 4px; }
+  .plan-btn{ margin-top:auto; padding:13px; border-radius:14px; font-weight:800; font-size:14px; color:#fff; background:linear-gradient(120deg,var(--flame1),var(--flame2)); cursor:pointer; }
+  .plan-btn.ghost{ background:var(--card); color:var(--text); border:1px solid var(--line); }
+  .plan-note{ max-width:760px; margin:0 auto; padding:0 12px 30px; font-size:12px; color:var(--text-faint); text-align:center; }
+
+  /* ---- Call buttons in chat head ---- */
+  .call-btns{ margin-left:auto; display:flex; gap:8px; }
+  .call-ic{ width:38px; height:38px; border-radius:50%; background:var(--card); border:1px solid var(--line); display:flex; align-items:center; justify-content:center; font-size:16px; cursor:pointer; }
+  .call-ic:hover{ background:var(--line); }
+
+  /* ---- Incoming call modal ---- */
+  .call-modal-bg{ position:fixed; inset:0; background:rgba(10,8,12,.72); backdrop-filter:blur(6px); display:none; align-items:center; justify-content:center; z-index:200; flex-direction:column; text-align:center; padding:20px; }
+  .call-modal-bg.open{ display:flex; }
+  .call-modal-avatar{ width:96px; height:96px; border-radius:50%; background-size:cover; background-position:center; background-color:var(--card); margin-bottom:18px; font-size:40px; display:flex; align-items:center; justify-content:center; }
+  .call-modal-name{ font-size:20px; font-weight:800; color:#fff; }
+  .call-modal-sub{ font-size:13.5px; color:rgba(255,255,255,.7); margin-top:4px; margin-bottom:30px; }
+  .call-modal-actions{ display:flex; gap:26px; }
+  .call-action-btn{ width:60px; height:60px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:24px; cursor:pointer; border:none; }
+  .call-action-btn.accept{ background:#2ecc71; color:#fff; }
+  .call-action-btn.reject{ background:#ff4d4d; color:#fff; }
+
+  /* ---- In-call overlay ---- */
+  .incall-bg{ position:fixed; inset:0; background:#0b0710; display:none; z-index:210; flex-direction:column; }
+  .incall-bg.open{ display:flex; }
+  .incall-remote-video{ flex:1; width:100%; object-fit:cover; background:#161018; }
+  .incall-local-video{ position:absolute; top:20px; right:20px; width:110px; height:150px; border-radius:14px; object-fit:cover; background:#222; border:2px solid rgba(255,255,255,.25); }
+  .incall-audio-view{ flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; color:#fff; }
+  .incall-audio-avatar{ width:120px; height:120px; border-radius:50%; background-size:cover; background-position:center; background-color:var(--card); margin-bottom:18px; }
+  .incall-status{ color:rgba(255,255,255,.75); font-size:13.5px; margin-top:6px; }
+  .incall-controls{ display:flex; justify-content:center; gap:20px; padding:26px; background:linear-gradient(0deg, rgba(0,0,0,.55), transparent); position:absolute; bottom:0; left:0; right:0; }
+  .incall-ctl{ width:54px; height:54px; border-radius:50%; border:none; font-size:20px; cursor:pointer; display:flex; align-items:center; justify-content:center; background:rgba(255,255,255,.16); color:#fff; }
+  .incall-ctl.off{ background:#fff; color:#111; }
+  .incall-ctl.end{ background:#ff4d4d; color:#fff; }
+  .incall-topbar{ position:absolute; top:16px; left:16px; color:#fff; font-size:13px; background:rgba(0,0,0,.35); padding:6px 12px; border-radius:20px; }
+
+  /* ---- Cookie banner ---- */
+  .cookie-banner{ position:fixed; left:16px; right:16px; bottom:16px; max-width:560px; margin:0 auto; background:var(--bg-alt); border:1px solid var(--line); border-radius:18px; padding:18px 20px; box-shadow:0 10px 40px rgba(0,0,0,.35); z-index:300; display:none; }
+  .cookie-banner.open{ display:block; }
+  .cookie-banner p{ font-size:13px; color:var(--text-dim); line-height:1.55; margin-bottom:14px; }
+  .cookie-actions{ display:flex; gap:10px; }
+  .cookie-btn{ flex:1; padding:11px; border-radius:12px; font-weight:700; font-size:13px; cursor:pointer; }
+  .cookie-btn.accept{ background:linear-gradient(120deg,var(--flame1),var(--flame2)); color:#fff; border:none; }
+  .cookie-btn.decline{ background:transparent; color:var(--text-dim); border:1px solid var(--line); }
+
+  /* ---- Install app button ---- */
+  #installAppBtn{ display:none; cursor:pointer; }
+</style>
+</head>
+<body class="auth-active">
+
+<div id="bootLoading">
+  <div class="boot-logo">🔥</div>
+  <div class="boot-spinner"></div>
+</div>
+
+<!-- ============ MAIN APP ============ -->
+<div id="app">
+
+  <nav class="sidebar">
+    <div class="brand"><div class="mark">🔥</div><span>Matchify</span></div>
+    <div class="navlist">
+      <div class="navitem active" data-nav="discover">🔍<span>Discover</span></div>
+      <div class="navitem" data-nav="matches">💛<span>Matches</span></div>
+      <div class="navitem" data-nav="chat">💬<span>Messages</span><span class="navbadge" id="chatNavBadge" style="display:none;">0</span></div>
+      <div class="navitem" data-nav="premium">💎<span>Premium</span></div>
+      <div class="navitem" data-nav="profile">👤<span>My Profile</span></div>
+    </div>
+    <div class="sidebar-foot">
+      <div class="navitem" id="installAppBtn">⬇️<span>Download app</span></div>
+    </div>
+  </nav>
+
+  <!-- Discover -->
+  <section class="col discover-col view active" id="view-discover">
+    <div class="col-header"><h1>Discover</h1></div>
+    <div class="stage">
+      <div class="card-stack" id="cardStack">
+        <div class="swipe-empty" id="stackEmpty" style="display:none;">
+          <div class="big">🎉</div>
+          <div style="font-weight:700;font-size:16px;margin-bottom:6px;">You're all caught up</div>
+          <div style="font-size:13.5px;">Check back soon for new people nearby.</div>
+        </div>
+      </div>
+    </div>
+    <div class="action-row">
+      <button class="abtn nope" id="btnPass" title="Pass">✕</button>
+      <button class="abtn super" id="btnSuper" title="Super Like">★</button>
+      <button class="abtn like" id="btnLike" title="Like">♥</button>
+    </div>
+  </section>
+
+  <!-- Matches -->
+  <section class="col view secondary-view" id="view-matches">
+    <div class="col-header"><h1>Your Matches</h1></div>
+    <div class="col-scroll" id="matchesList"></div>
+  </section>
+
+  <!-- Chat -->
+  <section class="col chat-col view" id="view-chat">
+    <div style="width:300px;flex:0 0 300px;border-right:1px solid var(--line);display:flex;flex-direction:column;overflow:hidden;">
+      <div class="col-header"><h1>Messages</h1></div>
+      <div class="col-scroll" id="chatList"></div>
+    </div>
+    <div style="flex:1;display:flex;flex-direction:column;overflow:hidden;">
+      <div id="chatEmpty" class="conv-empty">Select a match to start chatting.</div>
+      <div id="chatConv" style="display:none;flex:1;flex-direction:column;overflow:hidden;">
+        <div class="chat-head">
+          <div class="avatar sz40" id="chatHeadAvatar"></div>
+          <div><div class="nm" id="chatHeadName"></div><div class="status" id="chatHeadStatus">Matched</div></div>
+          <div class="compat-badge" id="compatBadge" style="display:none;" title="AI compatibility score"></div>
+          <div class="call-btns">
+            <div class="call-ic" id="chatCallAudioBtn" title="Voice call">📞</div>
+            <div class="call-ic" id="chatCallVideoBtn" title="Video call">🎥</div>
+          </div>
+        </div>
+        <div class="chat-body" id="chatBody"></div>
+        <div class="icebreakers-row" id="icebreakersRow" style="display:none;"></div>
+        <div class="chat-input">
+          <input type="text" id="chatInputField" placeholder="Type a message...">
+          <button id="chatSendBtn" style="font-weight:800;color:var(--flame2);">Send</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Profile -->
+  <section class="col view secondary-view" id="view-profile">
+    <div class="col-header"><h1>My Profile</h1></div>
+    <div class="col-scroll">
+      <div class="profile-view-inner">
+        <div class="pv-photo" id="profilePhotoPreview">👤</div>
+        <div class="pv-field"><label>Photo URL</label><input type="url" id="pfPhoto" placeholder="https://..."></div>
+        <div class="pv-field"><label>Name</label><input type="text" id="pfName"></div>
+        <div style="display:flex;gap:10px;">
+          <div class="pv-field" style="flex:1;"><label>Age</label><input type="number" id="pfAge"></div>
+          <div class="pv-field" style="flex:1;"><label>Job</label><input type="text" id="pfJob"></div>
+        </div>
+        <div style="display:flex;gap:10px;">
+          <div class="pv-field" style="flex:1;"><label>Country</label><select id="pfCountry"></select></div>
+          <div class="pv-field" style="flex:1;"><label>City / area</label><input type="text" id="pfLocation"></div>
+        </div>
+        <div class="pv-field"><label>Bio</label><textarea id="pfBio"></textarea></div>
+        <div class="ai-bio-row">
+          <input type="text" id="aiBioKeywords" placeholder="✨ Describe yourself in a few words (hiking, product design, dogs...)">
+          <select id="aiBioTone">
+            <option value="witty">Witty</option>
+            <option value="sincere">Sincere</option>
+            <option value="chill">Chill</option>
+          </select>
+          <button type="button" id="aiBioGenBtn">Generate with AI</button>
+        </div>
+        <div class="pv-field"><label>Interests (comma separated)</label><input type="text" id="pfInterests"></div>
+        <button class="pv-save" id="pfSaveBtn" style="background:linear-gradient(120deg,var(--flame1),var(--flame2));">Save changes</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- Premium / Subscription -->
+  <section class="col view secondary-view" id="view-premium">
+    <div class="col-header"><h1>Matchify Premium</h1></div>
+    <div class="col-scroll">
+      <div class="plans-wrap">
+        <div class="plan-card">
+          <div class="plan-name">Free</div>
+          <div class="plan-price">₹0</div>
+          <div class="plan-feat">✔ Basic matching<br>✔ Limited daily swipes<br>✔ Match &amp; chat<br>✘ No calls<br>✘ Ads shown</div>
+          <button class="plan-btn ghost" data-plan="free">Current plan</button>
+        </div>
+        <div class="plan-card">
+          <div class="plan-name">Plus</div>
+          <div class="plan-price">₹49<small>/month</small></div>
+          <div class="plan-feat">✔ More daily swipes<br>✔ Voice &amp; video calls<br>✔ No ads<br>✔ Extra profile customization</div>
+          <button class="plan-btn" data-plan="plus">Subscribe</button>
+        </div>
+        <div class="plan-card reco">
+          <div class="plan-badge">Most popular</div>
+          <div class="plan-name">Pro</div>
+          <div class="plan-price">₹99<small>/month</small></div>
+          <span class="plan-exclusive">Best value</span>
+          <div class="plan-feat">✔ Everything in Plus<br>✔ Unlimited swipes<br>✔ See who liked you<br>✔ Priority discovery</div>
+          <button class="plan-btn" data-plan="pro">Subscribe</button>
+        </div>
+        <div class="plan-card">
+          <div class="plan-name">Ultra</div>
+          <div class="plan-price">₹199<small>/month</small></div>
+          <div class="plan-feat">✔ Everything in Pro<br>✔ Maximum discovery<br>✔ Profile boosts<br>✔ Premium profile features</div>
+          <button class="plan-btn" data-plan="ultra">Subscribe</button>
+        </div>
+      </div>
+      <p class="plan-note">Payments are mocked for now — no real charge is made. Wire up Razorpay on the backend (<code>/api/users/subscribe</code>) when you're ready to accept real payments.</p>
+    </div>
+  </section>
+
+</div>
+
+<!-- Incoming call modal -->
+<div class="call-modal-bg" id="incomingCallModal">
+  <div class="call-modal-avatar" id="incomingCallAvatar">👤</div>
+  <div class="call-modal-name" id="incomingCallName"></div>
+  <div class="call-modal-sub" id="incomingCallSub">Incoming voice call...</div>
+  <div class="call-modal-actions">
+    <button class="call-action-btn reject" id="incomingCallReject">✕</button>
+    <button class="call-action-btn accept" id="incomingCallAccept">✓</button>
+  </div>
+</div>
+
+<!-- Active call overlay -->
+<div class="incall-bg" id="inCallOverlay">
+  <div class="incall-topbar" id="inCallTimer">00:00</div>
+  <video class="incall-remote-video" id="remoteVideo" autoplay playsinline style="display:none;"></video>
+  <div class="incall-audio-view" id="audioCallView" style="display:none;">
+    <div class="incall-audio-avatar" id="audioCallAvatar"></div>
+    <div class="call-modal-name" id="audioCallName"></div>
+    <div class="incall-status" id="audioCallStatus">Connecting...</div>
+  </div>
+  <video class="incall-local-video" id="localVideo" autoplay playsinline muted style="display:none;"></video>
+  <div class="incall-controls">
+    <button class="incall-ctl" id="toggleMuteBtn" title="Mute">🎙️</button>
+    <button class="incall-ctl" id="toggleCamBtn" title="Camera">📷</button>
+    <button class="incall-ctl end" id="endCallBtn" title="End call">📴</button>
+  </div>
+</div>
+
+<!-- Cookie consent -->
+<div class="cookie-banner" id="cookieBanner">
+  <p>🍪 Matchify uses cookies to keep you signed in and to remember your preferences. By using the app you agree to our use of cookies.</p>
+  <div class="cookie-actions">
+    <button class="cookie-btn decline" id="cookieDecline">Decline</button>
+    <button class="cookie-btn accept" id="cookieAccept">Accept</button>
+  </div>
+</div>
+
+<!-- Mobile bottom nav (sidebar is hidden under 860px) -->
+<nav class="bottom-nav">
+  <div class="bn-item active" data-nav="discover">🔍<span>Discover</span></div>
+  <div class="bn-item" data-nav="matches">💛<span>Matches</span></div>
+  <div class="bn-item" data-nav="chat">💬<span>Chat</span><span class="bn-badge" id="chatNavBadgeMobile" style="display:none;">0</span></div>
+  <div class="bn-item" data-nav="premium">💎<span>Premium</span></div>
+  <div class="bn-item" data-nav="profile">👤<span>Profile</span></div>
+</nav>
+
+<!-- Match celebration modal -->
+<div class="match-modal" id="matchModal">
+  <div style="font-size:60px;">🔥</div>
+  <h1 class="title flame-text fraunces">It's a Match!</h1>
+  <div class="sub" id="matchModalSub"></div>
+  <div class="btnstack">
+    <button class="mbtn-primary flame-bg" id="matchModalChat">Send a message</button>
+    <button class="mbtn-ghost" id="matchModalKeep">Keep swiping</button>
+  </div>
+</div>
+
+<div class="pf-toast" id="toast"><span id="toastMsg"></span></div>
+
+<script src="/socket.io/socket.io.js"></script>
+<script src="/js/countries.js"></script>
+<script src="/js/app.js"></script>
+<script>
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('/service-worker.js').catch(() => {});
+    });
+  }
+</script>
+</body>
+</html>
