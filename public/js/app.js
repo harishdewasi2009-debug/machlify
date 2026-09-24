@@ -7,7 +7,9 @@
   let profileQueue = [];
   let matchesCache = [];
   let activeMatchId = null;
+  let activeOtherUserId = null;
   let chatPollTimer = null;
+  let notifPollTimer = null;
   let socket = null;
 
   // ---------- Call state ----------
@@ -72,6 +74,7 @@
     if (name === 'chat') loadChatList();
     if (name === 'profile') loadProfileForm();
     if (name === 'premium') loadPremiumView();
+    if (name === 'ai') initAITalk();
   }
   $all('.navitem[data-nav], .bn-item[data-nav]').forEach(item => {
     item.addEventListener('click', () => setActiveNav(item.dataset.nav));
@@ -82,6 +85,8 @@
     document.body.classList.remove('auth-active');
     setActiveNav('discover');
     connectSocket();
+    loadNotifications();
+    notifPollTimer = setInterval(loadNotifications, 15000);
   }
 
   // ---------- Countries dropdown ----------
@@ -92,6 +97,8 @@
     const pfSel = document.getElementById('pfCountry');
     if (regSel) regSel.innerHTML = opts;
     if (pfSel) pfSel.innerHTML = opts;
+    const discSel = document.getElementById('discoverCountry');
+    if (discSel) discSel.innerHTML = '<option value="">🌎 Any country</option>' + list.map(c => `<option value="${c}">${c}</option>`).join('');
   }
   populateCountrySelects();
 
@@ -132,7 +139,12 @@
     stack.querySelectorAll('.swipe-card').forEach(c => c.remove());
     $('#stackEmpty').style.display = 'none';
     try {
-      const data = await api('/users/discover?limit=20');
+      const qs = new URLSearchParams({ limit: '20' });
+      const country = $('#discoverCountry')?.value || '';
+      const gender = $('#discoverGender')?.value || 'everyone';
+      if (country) qs.set('country', country);
+      if (gender && gender !== 'everyone') qs.set('gender', gender);
+      const data = await api('/users/discover?' + qs.toString());
       profileQueue = data.profiles;
       renderStack();
     } catch (err) {
@@ -171,6 +183,7 @@
             <span class="name">${escapeHtml(u.name)}</span>
             <span class="age">${u.age || ''}</span>
             ${u.verified ? '<span class="verified">✓</span>' : ''}
+            ${u.isDemo ? '<span class="demo-badge">DEMO PROFILE</span>' : ''}
           </div>
           <div class="meta-row">
             ${u.job ? `<span class="item">💼 ${escapeHtml(u.job)}</span>` : ''}
@@ -247,7 +260,12 @@
     if (profileQueue.length < 3) {
       // top up in background
       try {
-        const more = await api('/users/discover?limit=10');
+        const qs = new URLSearchParams({ limit: '10' });
+        const country = $('#discoverCountry')?.value || '';
+        const gender = $('#discoverGender')?.value || 'everyone';
+        if (country) qs.set('country', country);
+        if (gender && gender !== 'everyone') qs.set('gender', gender);
+        const more = await api('/users/discover?' + qs.toString());
         const existingIds = new Set(profileQueue.map(p => p.id));
         more.profiles.forEach(p => { if (!existingIds.has(p.id) && p.id !== ME.id) profileQueue.push(p); });
       } catch (e) {}
@@ -276,6 +294,59 @@
     setTimeout(() => openConversation(matchId), 300);
   });
 
+  $('#applyDiscoverFilters').addEventListener('click', () => loadDiscover());
+  $('#randomTalkBtn').addEventListener('click', async () => {
+    const btn = $('#randomTalkBtn');
+    const original = btn.textContent;
+    btn.textContent = 'Finding...'; btn.disabled = true;
+    try {
+      const data = await api('/users/random-talk', {
+        method: 'POST',
+        body: JSON.stringify({
+          country: $('#discoverCountry').value,
+          gender: $('#discoverGender').value,
+        }),
+      });
+      toast(`Random match found: ${data.match.user.name}`);
+      setActiveNav('chat');
+      setTimeout(() => openConversation(data.match.id), 250);
+    } catch (err) { toast(err.message); }
+    finally { btn.textContent = original; btn.disabled = false; }
+  });
+
+  // ---------- AI Talk ----------
+  let aiPersona = 'friendly';
+  let aiTalkReady = false;
+  function initAITalk() {
+    if (aiTalkReady) return;
+    aiTalkReady = true;
+    $all('.ai-persona').forEach(btn => btn.addEventListener('click', () => {
+      $all('.ai-persona').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      aiPersona = btn.dataset.persona;
+    }));
+    const send = async () => {
+      const input = $('#aiChatInput');
+      const message = input.value.trim();
+      if (!message) return;
+      appendAIMessage(message, 'user'); input.value = '';
+      try {
+        const data = await api('/ai/companion', { method:'POST', body:JSON.stringify({ message, persona: aiPersona }) });
+        appendAIMessage(data.reply, 'bot');
+      } catch (err) { appendAIMessage(err.message, 'bot'); }
+    };
+    $('#aiChatSend').addEventListener('click', send);
+    $('#aiChatInput').addEventListener('keydown', e => { if (e.key === 'Enter') send(); });
+  }
+  function appendAIMessage(text, who) {
+    const box = $('#aiChatBox');
+    const div = document.createElement('div');
+    div.className = `ai-msg ${who}`;
+    div.textContent = text;
+    box.appendChild(div);
+    box.scrollTop = box.scrollHeight;
+  }
+
   // ---------- Matches list ----------
   async function loadMatches() {
     const list = $('#matchesList');
@@ -292,7 +363,7 @@
         <div class="match-item" data-match-id="${m.id}" style="cursor:pointer;">
           <div class="avatar sz48" style="background-image:url('${photoOf(m.user)}')"></div>
           <div class="body">
-            <div class="row1"><span class="nm">${escapeHtml(m.user.name)}</span></div>
+            <div class="row1"><span class="nm">${escapeHtml(m.user.name)}</span>${m.user.isDemo ? '<span class="demo-badge">DEMO</span>' : ''}</div>
             <div class="sub">${m.lastMessage ? escapeHtml(m.lastMessage.text) : 'Say hello 👋'}</div>
           </div>
         </div>
@@ -332,7 +403,7 @@
         <div class="match-item" data-match-id="${m.id}" style="cursor:pointer;">
           <div class="avatar sz48" style="background-image:url('${photoOf(m.user)}')">${m.unreadCount ? `<span class="dot"></span>` : ''}</div>
           <div class="body">
-            <div class="row1"><span class="nm">${escapeHtml(m.user.name)}</span></div>
+            <div class="row1"><span class="nm">${escapeHtml(m.user.name)}</span>${m.user.isDemo ? '<span class="demo-badge">DEMO</span>' : ''}</div>
             <div class="sub ${m.unreadCount ? 'new' : ''}">${m.lastMessage ? escapeHtml(m.lastMessage.text) : 'Say hello 👋'}</div>
           </div>
         </div>
@@ -351,10 +422,11 @@
     activeMatchId = matchId;
     const match = matchesCache.find(m => String(m.id) === matchId);
     if (!match) return;
+    activeOtherUserId = match.user.id;
     $('#chatEmpty').style.display = 'none';
     $('#chatConv').style.display = 'flex';
     $('#chatHeadAvatar').style.backgroundImage = `url('${photoOf(match.user)}')`;
-    $('#chatHeadName').textContent = match.user.name;
+    $('#chatHeadName').innerHTML = escapeHtml(match.user.name) + (match.user.isDemo ? '<span class="demo-badge">DEMO</span>' : '');
 
     try {
       const data = await api(`/matches/${matchId}/messages`);
@@ -472,7 +544,132 @@
   $('#chatSendBtn').addEventListener('click', sendMessage);
   $('#chatInputField').addEventListener('keydown', e => { if (e.key === 'Enter') sendMessage(); });
 
+  // ---------- Safety: block / report / unmatch ----------
+  $('#chatMoreBtn').addEventListener('click', (e) => {
+    e.stopPropagation();
+    $('#chatMoreMenu').classList.toggle('open');
+  });
+  document.addEventListener('click', () => $('#chatMoreMenu').classList.remove('open'));
+
+  $('#chatUnmatchBtn').addEventListener('click', async () => {
+    if (!activeMatchId) return;
+    if (!confirm('Unmatch with this person? This cannot be undone.')) return;
+    try {
+      await api(`/matches/${activeMatchId}`, { method: 'DELETE' });
+      toast('Unmatched');
+      $('#chatConv').style.display = 'none';
+      $('#chatEmpty').style.display = 'flex';
+      activeMatchId = null;
+      loadChatList();
+    } catch (err) {
+      toast(err.message);
+    }
+  });
+
+  $('#chatBlockBtn').addEventListener('click', async () => {
+    if (!activeOtherUserId) return;
+    if (!confirm('Block this person? They will be removed from your matches and won\'t be able to contact you.')) return;
+    try {
+      await api(`/safety/block/${activeOtherUserId}`, { method: 'POST' });
+      toast('User blocked');
+      $('#chatConv').style.display = 'none';
+      $('#chatEmpty').style.display = 'flex';
+      activeMatchId = null;
+      loadChatList();
+    } catch (err) {
+      toast(err.message);
+    }
+  });
+
+  $('#chatReportBtn').addEventListener('click', () => {
+    if (!activeOtherUserId) return;
+    $('#reportModal').classList.add('open');
+  });
+  $('#reportCancelBtn').addEventListener('click', () => $('#reportModal').classList.remove('open'));
+  $('#reportConfirmBtn').addEventListener('click', async () => {
+    if (!activeOtherUserId) return;
+    try {
+      await api('/safety/report', {
+        method: 'POST',
+        body: JSON.stringify({
+          userId: activeOtherUserId,
+          reason: $('#reportReason').value,
+          details: $('#reportDetails').value.trim(),
+          matchId: activeMatchId,
+        }),
+      });
+      $('#reportModal').classList.remove('open');
+      $('#reportDetails').value = '';
+      toast('Report submitted — thank you for keeping Matchify safe.');
+    } catch (err) {
+      toast(err.message);
+    }
+  });
+
+  // ---------- Notifications ----------
+  async function loadNotifications() {
+    try {
+      const data = await api('/notifications');
+      const badge = $('#notifBadge');
+      badge.textContent = data.unreadCount;
+      badge.style.display = data.unreadCount ? 'block' : 'none';
+      const panel = $('#notifPanel');
+      panel.innerHTML = data.notifications.length
+        ? data.notifications.map(n => `<div class="notif-item">${escapeHtml(n.text)}</div>`).join('')
+        : '<div class="notif-item">No notifications yet.</div>';
+    } catch (e) { /* non-critical */ }
+  }
+  $('#notifBell').addEventListener('click', (e) => {
+    e.stopPropagation();
+    $('#notifPanel').classList.toggle('open');
+  });
+  document.addEventListener('click', () => $('#notifPanel').classList.remove('open'));
+
+
   // ---------- Profile ----------
+  const MAX_PROFILE_PHOTOS = 9; // mirrors server/config.js MAX_PROFILE_PHOTOS
+  let profilePhotos = [];
+
+  function renderPhotoGrid() {
+    const grid = $('#photoGrid');
+    grid.innerHTML = profilePhotos.map((url, i) => `
+      <div class="photo-slot" style="background-image:url('${url}')" data-i="${i}">
+        ${i === 0 ? '<span class="primary-tag">PRIMARY</span>' : ''}
+        <button class="rm" data-i="${i}" title="Remove">✕</button>
+      </div>
+    `).join('');
+    grid.querySelectorAll('.rm').forEach(btn => {
+      btn.addEventListener('click', () => {
+        profilePhotos.splice(parseInt(btn.dataset.i, 10), 1);
+        renderPhotoGrid();
+        updateProfilePreview();
+      });
+    });
+    $('#pfPhotoAddBtn').disabled = profilePhotos.length >= MAX_PROFILE_PHOTOS;
+  }
+  function updateProfilePreview() {
+    const preview = $('#profilePhotoPreview');
+    if (profilePhotos[0]) {
+      preview.style.backgroundImage = `url('${profilePhotos[0]}')`;
+      preview.textContent = '';
+    } else {
+      preview.style.backgroundImage = '';
+      preview.textContent = '👤';
+    }
+  }
+  $('#maxPhotosLabel').textContent = MAX_PROFILE_PHOTOS;
+  $('#pfPhotoAddBtn').addEventListener('click', () => {
+    const input = $('#pfPhotoInput');
+    const url = input.value.trim();
+    if (!url) return;
+    if (!/^https?:\/\/\S+$/i.test(url)) { toast('Enter a valid image URL (starting with http:// or https://)'); return; }
+    if (profilePhotos.length >= MAX_PROFILE_PHOTOS) { toast(`You can have at most ${MAX_PROFILE_PHOTOS} photos`); return; }
+    profilePhotos.push(url);
+    input.value = '';
+    renderPhotoGrid();
+    updateProfilePreview();
+  });
+
   function loadProfileForm() {
     if (!ME) return;
     $('#pfName').value = ME.name || '';
@@ -482,22 +679,10 @@
     $('#pfCountry').value = ME.country || '';
     $('#pfBio').value = ME.bio || '';
     $('#pfInterests').value = (ME.interests || []).join(', ');
-    $('#pfPhoto').value = (ME.photos && ME.photos[0]) || '';
-    const preview = $('#profilePhotoPreview');
-    if (ME.photos && ME.photos[0]) {
-      preview.style.backgroundImage = `url('${ME.photos[0]}')`;
-      preview.textContent = '';
-    } else {
-      preview.style.backgroundImage = '';
-      preview.textContent = '👤';
-    }
+    profilePhotos = (ME.photos || []).slice(0, MAX_PROFILE_PHOTOS);
+    renderPhotoGrid();
+    updateProfilePreview();
   }
-  $('#pfPhoto').addEventListener('input', () => {
-    const url = $('#pfPhoto').value.trim();
-    const preview = $('#profilePhotoPreview');
-    preview.style.backgroundImage = url ? `url('${url}')` : '';
-    preview.textContent = url ? '' : '👤';
-  });
 
   // ---------- AI: bio generator ----------
   $('#aiBioGenBtn').addEventListener('click', async () => {
@@ -529,11 +714,14 @@
       country: $('#pfCountry').value,
       bio: $('#pfBio').value.trim(),
       interests: $('#pfInterests').value.split(',').map(s => s.trim()).filter(Boolean),
-      photos: $('#pfPhoto').value.trim() ? [$('#pfPhoto').value.trim()] : [],
+      photos: profilePhotos,
     };
     try {
       const data = await api('/users/me', { method: 'PUT', body: JSON.stringify(body) });
       ME = data.user;
+      profilePhotos = (ME.photos || []).slice(0, MAX_PROFILE_PHOTOS);
+      renderPhotoGrid();
+      updateProfilePreview();
       toast('Profile updated ✓');
     } catch (err) {
       toast(err.message);
@@ -541,16 +729,36 @@
   });
 
   // ---------- Premium / subscription (mock payment) ----------
+  let billingCycle = 'monthly';
+
+  function applyCycleToCards() {
+    $all('.cycle-price').forEach(el => {
+      el.innerHTML = el.dataset[billingCycle];
+    });
+    $all('[data-yearly-only]').forEach(el => {
+      el.style.display = billingCycle === 'yearly' ? '' : 'none';
+    });
+    $('#autopayNote').style.display = billingCycle === 'yearly' ? 'block' : 'none';
+  }
+  $all('.auth-tabs .auth-tab[data-cycle]').forEach(tab => {
+    tab.addEventListener('click', () => {
+      $all('.auth-tabs .auth-tab[data-cycle]').forEach(t => t.classList.toggle('active', t === tab));
+      billingCycle = tab.dataset.cycle;
+      applyCycleToCards();
+    });
+  });
+
   function loadPremiumView() {
+    applyCycleToCards();
     const currentPlan = (ME && ME.plan) || 'free';
     $all('.plan-btn').forEach(btn => {
       const plan = btn.dataset.plan;
-      if (plan === currentPlan) {
+      if (plan === currentPlan && plan !== 'day_pass') {
         btn.textContent = 'Current plan';
         btn.classList.add('ghost');
         btn.disabled = true;
       } else {
-        btn.textContent = plan === 'free' ? 'Downgrade' : 'Subscribe';
+        btn.textContent = plan === 'free' ? 'Downgrade' : plan === 'day_pass' ? 'Buy day pass' : 'Subscribe';
         btn.classList.remove('ghost');
         btn.disabled = false;
       }
@@ -559,10 +767,15 @@
   $all('.plan-btn').forEach(btn => {
     btn.addEventListener('click', async () => {
       const plan = btn.dataset.plan;
+      const body = { plan };
+      if (plan === 'plus' || plan === 'pro') body.billingCycle = billingCycle;
       try {
-        const data = await api('/users/subscribe', { method: 'POST', body: JSON.stringify({ plan }) });
+        const data = await api('/users/subscribe', { method: 'POST', body: JSON.stringify(body) });
         ME = data.user;
-        toast(plan === 'free' ? 'Back on the Free plan' : `You're on the ${plan} plan now (mock payment) ✓`);
+        const label = plan === 'free' ? 'Back on the Free plan'
+          : plan === 'day_pass' ? "Day pass active for 24 hours (mock payment) ✓"
+          : `You're on the ${plan} plan now, billed ${billingCycle} (mock payment) ✓`;
+        toast(label);
         loadPremiumView();
       } catch (err) {
         toast(err.message);
@@ -847,29 +1060,192 @@
     $('#toggleCamBtn').classList.toggle('off', !call.camOn);
   });
 
+  // ---------- Auth gate (login / signup / guest demo) ----------
+  let demoModeEnabled = false;
+  let requireAgeVerification = false;
+
+  function showAuthError(msg) {
+    const el = $('#authError');
+    el.textContent = msg;
+    el.classList.add('show');
+  }
+  function clearAuthError() {
+    $('#authError').classList.remove('show');
+  }
+
+  $all('.auth-tab').forEach(tab => {
+    tab.addEventListener('click', () => {
+      $all('.auth-tab').forEach(t => t.classList.toggle('active', t === tab));
+      $('#panel-login').classList.toggle('active', tab.dataset.tab === 'login');
+      $('#panel-signup').classList.toggle('active', tab.dataset.tab === 'signup');
+      clearAuthError();
+    });
+  });
+
+  $('#loginSubmitBtn').addEventListener('click', async () => {
+    clearAuthError();
+    const email = $('#loginEmail').value.trim();
+    const password = $('#loginPassword').value;
+    if (!email || !password) return showAuthError('Enter your email and password.');
+    try {
+      const data = await api('/auth/login', { method: 'POST', body: JSON.stringify({ email, password }) });
+      setToken(data.token);
+      ME = data.user;
+      proceedAfterAuth();
+    } catch (err) {
+      showAuthError(err.message);
+    }
+  });
+
+  $('#signupSubmitBtn').addEventListener('click', async () => {
+    clearAuthError();
+    const name = $('#signupName').value.trim();
+    const email = $('#signupEmail').value.trim();
+    const password = $('#signupPassword').value;
+    const age = $('#signupAge').value;
+    if (!name || !email || !password || !age) return showAuthError('Please fill in every field.');
+    try {
+      const data = await api('/auth/signup', { method: 'POST', body: JSON.stringify({ name, email, password, age }) });
+      setToken(data.token);
+      ME = data.user;
+      proceedAfterAuth();
+    } catch (err) {
+      showAuthError(err.message);
+    }
+  });
+
+  $('#authGuestBtn').addEventListener('click', async () => {
+    clearAuthError();
+    try {
+      const data = await api('/auth/demo', { method: 'POST' });
+      setToken(data.token);
+      ME = data.user;
+      proceedAfterAuth();
+    } catch (err) {
+      showAuthError(err.message);
+    }
+  });
+
+  // ---------- Age verification gate ----------
+  let verifyPollTimer = null;
+
+  function proceedAfterAuth() {
+    document.body.classList.remove('auth-active');
+    if (!requireAgeVerification || ME.isDemo || ME.verificationStatus === 'verified') {
+      document.body.classList.remove('verify-active');
+      enterApp();
+      return;
+    }
+    showVerifyGate();
+  }
+
+  async function showVerifyGate() {
+    document.body.classList.add('verify-active');
+    try {
+      const data = await api('/verification/status');
+      renderVerifyStatus(data.status, data.rejectionReason);
+    } catch (e) {
+      renderVerifyStatus('unverified');
+    }
+  }
+
+  function renderVerifyStatus(status, rejectionReason) {
+    $('#verifyStatusPending').style.display = status === 'pending' ? 'block' : 'none';
+    $('#verifyStatusRejected').style.display = status === 'rejected' ? 'block' : 'none';
+    $('#verifyStartBtn').style.display = (status === 'unverified' || status === 'rejected') ? 'block' : 'none';
+    $('#verifyStartBtn').textContent = status === 'rejected' ? 'Try again' : 'Start verification';
+    if (status === 'rejected') {
+      $('#verifyRejectReason').textContent = 'Verification was not approved' + (rejectionReason ? ` (${rejectionReason})` : '') + '.';
+    }
+    if (status === 'pending') {
+      clearInterval(verifyPollTimer);
+      verifyPollTimer = setInterval(async () => {
+        try {
+          const data = await api('/verification/status');
+          if (data.status !== 'pending') {
+            clearInterval(verifyPollTimer);
+            renderVerifyStatus(data.status, data.rejectionReason);
+            if (data.status === 'verified') {
+              ME.verificationStatus = 'verified';
+              proceedAfterAuth();
+            }
+          }
+        } catch (e) {}
+      }, 4000);
+    } else {
+      clearInterval(verifyPollTimer);
+    }
+  }
+
+  $('#verifyStartBtn').addEventListener('click', async () => {
+    try {
+      const data = await api('/verification/start', { method: 'POST' });
+      renderVerifyStatus(data.status);
+      if (!data.providerConfigured) {
+        toast('No verification provider is configured yet on the server (see VERIFICATION_PROVIDER in .env) — use the dev tools below to simulate a result locally.');
+      }
+    } catch (err) {
+      toast(err.message);
+    }
+  });
+  $('#verifyDevApproveBtn').addEventListener('click', async () => {
+    try {
+      await api('/verification/dev-simulate', { method: 'POST', body: JSON.stringify({ result: 'verified' }) });
+      ME.verificationStatus = 'verified';
+      toast('Simulated verification approved (dev only)');
+      proceedAfterAuth();
+    } catch (err) { toast(err.message); }
+  });
+  $('#verifyDevRejectBtn').addEventListener('click', async () => {
+    try {
+      await api('/verification/dev-simulate', { method: 'POST', body: JSON.stringify({ result: 'rejected' }) });
+      renderVerifyStatus('rejected', 'dev_simulated_rejection');
+    } catch (err) { toast(err.message); }
+  });
+  $('#verifyLogoutBtn').addEventListener('click', () => {
+    clearInterval(verifyPollTimer);
+    setToken(null);
+    ME = null;
+    document.body.classList.remove('verify-active');
+    document.body.classList.add('auth-active');
+  });
+
   // ---------- Boot ----------
-  // No sign-in flow: every visitor gets the same shared demo account so the
-  // rest of the app (matches, swipes, chat, calls) has a consistent user.
   (async function boot() {
     try {
-      if (TOKEN) {
-        ME = (await api('/auth/me')).user;
-      } else {
-        const data = await api('/auth/demo', { method: 'POST' });
-        setToken(data.token);
-        ME = data.user;
-      }
-      enterApp();
+      const cfg = await api('/auth/config');
+      demoModeEnabled = !!cfg.demoMode;
+      requireAgeVerification = !!cfg.requireAgeVerification;
+      // Only show the dev-simulate shortcut when no real provider is configured —
+      // the server also hard-disables that endpoint outright when NODE_ENV=production.
+      $('#verifyDevTools').style.display = cfg.verificationProviderConfigured ? 'none' : 'block';
     } catch (e) {
+      demoModeEnabled = false;
+    }
+    $('#authGuestBtn').style.display = demoModeEnabled ? 'block' : 'none';
+
+    if (TOKEN) {
       try {
-        setToken(null);
-        const data = await api('/auth/demo', { method: 'POST' });
-        setToken(data.token);
-        ME = data.user;
-        enterApp();
-      } catch (e2) {
-        toast('Could not start session: ' + e2.message);
+        ME = (await api('/auth/me')).user;
+        proceedAfterAuth();
+        return;
+      } catch (e) {
+        setToken(null); // stale/invalid token — fall through to auth gate
       }
     }
+
+    if (demoModeEnabled) {
+      // Demo mode is on: skip the gate and drop straight into the shared demo account,
+      // same as before, so the product still feels like a frictionless demo.
+      try {
+        const data = await api('/auth/demo', { method: 'POST' });
+        setToken(data.token);
+        ME = data.user;
+        proceedAfterAuth();
+        return;
+      } catch (e) { /* fall through to the gate below */ }
+    }
+    // No valid session and (demo mode is off, or the demo call failed): show the auth gate.
+    document.body.classList.add('auth-active');
   })();
 })();

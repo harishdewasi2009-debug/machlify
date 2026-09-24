@@ -58,6 +58,29 @@
   .pv-save{ width:100%; padding:14px; border-radius:16px; font-weight:800; font-size:14.5px; color:#fff; margin-top:6px; }
   .conv-empty{ flex:1; display:flex; align-items:center; justify-content:center; color:var(--text-faint); font-size:13.5px; text-align:center; padding:20px; }
 
+
+  /* ---- Random Talk + AI companion ---- */
+  .discover-tools{max-width:620px;margin:0 auto 14px;padding:0 10px;width:100%;}
+  .filter-panel{background:var(--bg-alt);border:1px solid var(--line);border-radius:18px;padding:12px;}
+  .filter-row{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+  .filter-row select,.filter-row input{width:100%;padding:11px 12px;border-radius:12px;background:var(--card);border:1px solid var(--line);color:var(--text);outline:none;font-family:inherit;}
+  .filter-actions{display:flex;gap:8px;margin-top:9px;}
+  .filter-actions button{flex:1;padding:11px;border-radius:12px;font-weight:800;border:1px solid var(--line);cursor:pointer;}
+  .random-talk-btn{background:linear-gradient(120deg,var(--flame1),var(--flame2));color:#fff;border-color:transparent!important;}
+  .ai-view-inner{max-width:760px;margin:0 auto;padding:10px 8px 100px;width:100%;}
+  .ai-hero{background:linear-gradient(145deg,rgba(255,77,109,.14),var(--bg-alt));border:1px solid var(--line);border-radius:22px;padding:22px;margin-bottom:14px;}
+  .ai-personas{display:grid;grid-template-columns:repeat(2,1fr);gap:9px;margin:14px 0;}
+  .ai-persona{padding:12px;border:1px solid var(--line);background:var(--card);border-radius:14px;color:var(--text);text-align:left;cursor:pointer;}
+  .ai-persona.active{border-color:var(--flame2);box-shadow:0 0 0 1px var(--flame2) inset;}
+  .ai-chat-box{min-height:320px;max-height:55vh;overflow:auto;background:var(--bg-alt);border:1px solid var(--line);border-radius:18px;padding:14px;}
+  .ai-msg{max-width:82%;padding:10px 13px;border-radius:15px;margin:7px 0;line-height:1.5;font-size:13.5px;white-space:pre-wrap;}
+  .ai-msg.user{margin-left:auto;background:linear-gradient(120deg,var(--flame1),var(--flame2));color:#fff;border-bottom-right-radius:5px;}
+  .ai-msg.bot{background:var(--card);border:1px solid var(--line);border-bottom-left-radius:5px;}
+  .ai-input-row{display:flex;gap:8px;margin-top:10px;}
+  .ai-input-row input{flex:1;padding:13px;border-radius:14px;background:var(--card);border:1px solid var(--line);color:var(--text);outline:none;}
+  .ai-input-row button{padding:0 18px;border-radius:14px;border:0;background:linear-gradient(120deg,var(--flame1),var(--flame2));color:#fff;font-weight:800;}
+  @media(max-width:520px){.filter-row{grid-template-columns:1fr}.ai-personas{grid-template-columns:1fr}.discover-tools{padding:0 6px}}
+
   /* ---- Google sign-in / divider ---- */
   .auth-divider{ display:flex; align-items:center; gap:10px; margin:16px 0; color:var(--text-faint); font-size:12px; }
   .auth-divider::before, .auth-divider::after{ content:''; flex:1; height:1px; background:var(--line); }
@@ -122,6 +145,64 @@
 
   /* ---- Install app button ---- */
   #installAppBtn{ display:none; cursor:pointer; }
+
+  /* ---- Auth gate (signup/login/guest) ---- */
+  #authGate{ display:none; }
+  body.auth-active #authGate{ display:flex; }
+  body.auth-active #bootLoading{ display:none !important; }
+  body.verify-active #app{ display:none !important; }
+  body.verify-active .bottom-nav{ display:none !important; }
+  body.verify-active #bootLoading{ display:none !important; }
+  .auth-tabs{ display:flex; gap:6px; margin-bottom:18px; background:var(--card); border-radius:14px; padding:4px; }
+  .auth-tab{ flex:1; text-align:center; padding:9px; border-radius:11px; font-weight:700; font-size:13px; cursor:pointer; color:var(--text-dim); }
+  .auth-tab.active{ background:linear-gradient(120deg,var(--flame1),var(--flame2)); color:#fff; }
+  .auth-panel{ display:none; }
+  .auth-panel.active{ display:block; }
+  .auth-field{ margin-bottom:12px; }
+  .auth-field label{ display:block; font-size:12px; font-weight:700; color:var(--text-dim); margin-bottom:5px; }
+  .auth-field input, .auth-field select{ width:100%; padding:12px 14px; border-radius:14px; background:var(--card); border:1px solid var(--line); color:var(--text); font-size:14px; outline:none; }
+  .auth-submit{ width:100%; padding:14px; border-radius:16px; font-weight:800; font-size:14.5px; color:#fff; margin-top:6px; background:linear-gradient(120deg,var(--flame1),var(--flame2)); cursor:pointer; border:none; }
+  .auth-guest{ width:100%; padding:12px; border-radius:14px; font-weight:700; font-size:13.5px; color:var(--text-dim); margin-top:14px; background:var(--card); border:1px solid var(--line); cursor:pointer; }
+  .auth-hint{ text-align:center; font-size:11.5px; color:var(--text-faint); margin-top:10px; }
+
+  /* ---- Demo profile badge ---- */
+  .demo-badge{ display:inline-block; font-size:10.5px; font-weight:800; letter-spacing:.3px; color:#fff; background:rgba(0,0,0,.55); border:1px solid rgba(255,255,255,.35); padding:2px 7px; border-radius:8px; margin-left:6px; vertical-align:middle; }
+
+  /* ---- Chat header overflow menu (block/report) ---- */
+  .chat-more-wrap{ position:relative; }
+  .chat-more-menu{ display:none; position:absolute; top:44px; right:0; background:var(--bg-alt); border:1px solid var(--line); border-radius:14px; box-shadow:0 10px 30px rgba(0,0,0,.35); min-width:170px; z-index:50; overflow:hidden; }
+  .chat-more-menu.open{ display:block; }
+  .chat-more-menu button{ display:block; width:100%; text-align:left; padding:12px 14px; font-size:13px; background:none; border:none; color:var(--text); cursor:pointer; }
+  .chat-more-menu button:hover{ background:var(--card); }
+  .chat-more-menu button.danger{ color:#ff6b6b; }
+
+  /* ---- Report reason mini-modal ---- */
+  .mini-modal-bg{ position:fixed; inset:0; background:rgba(10,8,12,.72); display:none; align-items:center; justify-content:center; z-index:220; padding:20px; }
+  .mini-modal-bg.open{ display:flex; }
+  .mini-modal{ background:var(--bg-alt); border:1px solid var(--line); border-radius:20px; padding:22px; width:100%; max-width:360px; }
+  .mini-modal h3{ font-size:16px; margin-bottom:12px; }
+  .mini-modal select, .mini-modal textarea{ width:100%; padding:10px 12px; border-radius:12px; background:var(--card); border:1px solid var(--line); color:var(--text); font-size:13.5px; margin-bottom:10px; outline:none; font-family:inherit; }
+  .mini-modal .row{ display:flex; gap:8px; }
+  .mini-modal .row button{ flex:1; padding:11px; border-radius:12px; font-weight:700; font-size:13px; cursor:pointer; border:none; }
+  .mini-modal .row .cancel{ background:var(--card); color:var(--text-dim); }
+  .mini-modal .row .confirm{ background:#ff4d4d; color:#fff; }
+
+  /* ---- Photo list editor ---- */
+  .photo-grid{ display:grid; grid-template-columns:repeat(3,1fr); gap:8px; margin-bottom:14px; }
+  .photo-slot{ position:relative; aspect-ratio:1/1; border-radius:14px; background-size:cover; background-position:center; background-color:var(--card); border:1px solid var(--line); overflow:hidden; }
+  .photo-slot .rm{ position:absolute; top:4px; right:4px; width:22px; height:22px; border-radius:50%; background:rgba(0,0,0,.6); color:#fff; border:none; font-size:12px; cursor:pointer; }
+  .photo-slot .primary-tag{ position:absolute; bottom:4px; left:4px; font-size:9.5px; font-weight:800; background:rgba(0,0,0,.6); color:#fff; padding:2px 6px; border-radius:6px; }
+  .photo-add{ display:flex; gap:6px; margin-bottom:6px; }
+  .photo-add input{ flex:1; padding:10px 12px; border-radius:12px; background:var(--card); border:1px solid var(--line); color:var(--text); font-size:13px; outline:none; }
+  .photo-add button{ padding:10px 14px; border-radius:12px; font-weight:700; font-size:13px; background:var(--card); border:1px solid var(--line); color:var(--text); cursor:pointer; white-space:nowrap; }
+
+  /* ---- Notification bell ---- */
+  .notif-bell{ position:relative; cursor:pointer; }
+  .notif-badge{ position:absolute; top:-4px; right:-4px; background:var(--flame2); color:#fff; font-size:9.5px; font-weight:800; padding:1px 5px; border-radius:8px; display:none; }
+  .notif-panel{ display:none; position:absolute; left:100%; bottom:0; margin-left:10px; width:280px; max-height:360px; overflow-y:auto; background:var(--bg-alt); border:1px solid var(--line); border-radius:16px; box-shadow:0 10px 30px rgba(0,0,0,.35); z-index:60; }
+  .notif-panel.open{ display:block; }
+  .notif-item{ padding:12px 14px; border-bottom:1px solid var(--line); font-size:12.5px; color:var(--text-dim); }
+  .notif-item:last-child{ border-bottom:none; }
 </style>
 </head>
 <body class="auth-active">
@@ -129,6 +210,66 @@
 <div id="bootLoading">
   <div class="boot-logo">🔥</div>
   <div class="boot-spinner"></div>
+</div>
+
+<!-- ============ AUTH GATE ============ -->
+<div id="authGate" class="onb-wrap">
+  <div class="onb-inner">
+    <div class="authcard">
+      <div style="text-align:center;margin-bottom:18px;"><div style="font-size:38px;">🔥</div><div style="font-weight:800;font-size:19px;margin-top:6px;">Matchify</div></div>
+      <div class="form-error" id="authError"></div>
+      <div class="auth-tabs">
+        <div class="auth-tab active" data-tab="login">Log in</div>
+        <div class="auth-tab" data-tab="signup">Sign up</div>
+      </div>
+
+      <div class="auth-panel active" id="panel-login">
+        <div class="auth-field"><label>Email</label><input type="email" id="loginEmail" autocomplete="email"></div>
+        <div class="auth-field"><label>Password</label><input type="password" id="loginPassword" autocomplete="current-password"></div>
+        <button class="auth-submit" id="loginSubmitBtn">Log in</button>
+      </div>
+
+      <div class="auth-panel" id="panel-signup">
+        <div class="auth-field"><label>Name</label><input type="text" id="signupName"></div>
+        <div class="auth-field"><label>Email</label><input type="email" id="signupEmail" autocomplete="email"></div>
+        <div class="auth-field"><label>Password (min 8 characters)</label><input type="password" id="signupPassword" autocomplete="new-password"></div>
+        <div class="auth-field"><label>Age</label><input type="number" id="signupAge" min="18" max="100" placeholder="18+"></div>
+        <button class="auth-submit" id="signupSubmitBtn">Create account</button>
+        <div class="auth-hint">Matchify is for adults 18+ only.</div>
+      </div>
+
+      <button class="auth-guest" id="authGuestBtn" style="display:none;">Continue as guest (demo mode)</button>
+    </div>
+  </div>
+</div>
+
+<!-- ============ AGE VERIFICATION GATE ============ -->
+<div id="verifyGate" class="onb-wrap" style="display:none;">
+  <div class="onb-inner">
+    <div class="authcard" style="text-align:center;">
+      <div style="font-size:38px;">🔒</div>
+      <div style="font-weight:800;font-size:19px;margin:10px 0 6px;">Verify you're 18+</div>
+      <p style="font-size:13.5px;color:var(--text-dim);line-height:1.6;margin-bottom:18px;" id="verifyBody">
+        Matchify requires identity verification before you can match or chat with anyone. This is a real check, not just the age you entered at signup.
+      </p>
+      <div id="verifyStatusPending" style="display:none;">
+        <div class="loading-spin" style="border-top-color:var(--flame2);width:22px;height:22px;margin:0 auto 14px;"></div>
+        <div style="font-size:13px;color:var(--text-dim);">Verification pending review...</div>
+      </div>
+      <div id="verifyStatusRejected" style="display:none;">
+        <div class="form-error show" id="verifyRejectReason"></div>
+      </div>
+      <button class="auth-submit" id="verifyStartBtn">Start verification</button>
+      <div id="verifyDevTools" style="display:none;margin-top:16px;padding-top:16px;border-top:1px dashed var(--line);">
+        <div style="font-size:11px;color:var(--text-faint);margin-bottom:8px;">Dev-only shortcut (disabled in production)</div>
+        <div style="display:flex;gap:8px;">
+          <button class="plan-btn ghost" style="flex:1;" id="verifyDevApproveBtn">Simulate: Verified</button>
+          <button class="plan-btn ghost" style="flex:1;" id="verifyDevRejectBtn">Simulate: Rejected</button>
+        </div>
+      </div>
+      <button class="auth-guest" id="verifyLogoutBtn" style="margin-top:10px;">Log out</button>
+    </div>
+  </div>
 </div>
 
 <!-- ============ MAIN APP ============ -->
@@ -141,9 +282,13 @@
       <div class="navitem" data-nav="matches">💛<span>Matches</span></div>
       <div class="navitem" data-nav="chat">💬<span>Messages</span><span class="navbadge" id="chatNavBadge" style="display:none;">0</span></div>
       <div class="navitem" data-nav="premium">💎<span>Premium</span></div>
+      <div class="navitem" data-nav="ai">🤖<span>AI Talk</span></div>
       <div class="navitem" data-nav="profile">👤<span>My Profile</span></div>
     </div>
     <div class="sidebar-foot">
+      <div class="navitem notif-bell" id="notifBell">🔔<span>Notifications</span><span class="notif-badge" id="notifBadge">0</span>
+        <div class="notif-panel" id="notifPanel"><div class="notif-item">No notifications yet.</div></div>
+      </div>
       <div class="navitem" id="installAppBtn">⬇️<span>Download app</span></div>
     </div>
   </nav>
@@ -151,6 +296,19 @@
   <!-- Discover -->
   <section class="col discover-col view active" id="view-discover">
     <div class="col-header"><h1>Discover</h1></div>
+    <div class="discover-tools">
+      <div class="filter-panel">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:9px;"><strong style="font-size:13px;">Find people to talk to</strong><span style="font-size:11px;color:var(--text-faint);">18+ verified users</span></div>
+        <div class="filter-row">
+          <select id="discoverCountry"><option value="">🌎 Any country</option></select>
+          <select id="discoverGender"><option value="everyone">👥 Everyone</option><option value="women">👩 Women</option><option value="men">👨 Men</option></select>
+        </div>
+        <div class="filter-actions">
+          <button id="applyDiscoverFilters">Apply filters</button>
+          <button class="random-talk-btn" id="randomTalkBtn">🎲 Random Talk</button>
+        </div>
+      </div>
+    </div>
     <div class="stage">
       <div class="card-stack" id="cardStack">
         <div class="swipe-empty" id="stackEmpty" style="display:none;">
@@ -189,6 +347,14 @@
           <div class="call-btns">
             <div class="call-ic" id="chatCallAudioBtn" title="Voice call">📞</div>
             <div class="call-ic" id="chatCallVideoBtn" title="Video call">🎥</div>
+            <div class="chat-more-wrap">
+              <div class="call-ic" id="chatMoreBtn" title="More">⋯</div>
+              <div class="chat-more-menu" id="chatMoreMenu">
+                <button id="chatUnmatchBtn">Unmatch</button>
+                <button id="chatBlockBtn" class="danger">Block</button>
+                <button id="chatReportBtn" class="danger">Report</button>
+              </div>
+            </div>
           </div>
         </div>
         <div class="chat-body" id="chatBody"></div>
@@ -201,13 +367,40 @@
     </div>
   </section>
 
+  <!-- AI Talk -->
+  <section class="col view secondary-view" id="view-ai">
+    <div class="col-header"><h1>AI Talk</h1></div>
+    <div class="col-scroll">
+      <div class="ai-view-inner">
+        <div class="ai-hero"><div style="font-size:28px;">🤖💬</div><h2 style="margin:7px 0 5px;">Someone to talk to, anytime</h2><p style="margin:0;color:var(--text-dim);font-size:13px;line-height:1.6;">Choose an AI companion and start a conversation. Premium AI Talk includes multiple conversation styles.</p></div>
+        <div class="ai-personas">
+          <button class="ai-persona active" data-persona="friendly">😊 <b>Friendly</b><br><small>Casual conversation</small></button>
+          <button class="ai-persona" data-persona="listener">👂 <b>Listener</b><br><small>Calm and supportive</small></button>
+          <button class="ai-persona" data-persona="motivator">🚀 <b>Motivator</b><br><small>Positive and practical</small></button>
+          <button class="ai-persona" data-persona="storyteller">📖 <b>Storyteller</b><br><small>Creative stories</small></button>
+          <button class="ai-persona" data-persona="language">🌐 <b>Language</b><br><small>Practice languages</small></button>
+          <button class="ai-persona" data-persona="gaming">🎮 <b>Gaming</b><br><small>Gaming buddy</small></button>
+          <button class="ai-persona" data-persona="career">💼 <b>Career</b><br><small>Work &amp; goals</small></button>
+        </div>
+        <div class="ai-chat-box" id="aiChatBox"><div class="ai-msg bot">Hi! I'm your Matchify AI companion. What would you like to talk about?</div></div>
+        <div class="ai-input-row"><input id="aiChatInput" placeholder="Type something to talk about..."><button id="aiChatSend">Send</button></div>
+        <p style="font-size:11px;color:var(--text-faint);text-align:center;margin-top:9px;">AI is not a human. For serious or urgent concerns, contact a trusted person or appropriate professional support.</p>
+      </div>
+    </div>
+  </section>
+
   <!-- Profile -->
   <section class="col view secondary-view" id="view-profile">
     <div class="col-header"><h1>My Profile</h1></div>
     <div class="col-scroll">
       <div class="profile-view-inner">
         <div class="pv-photo" id="profilePhotoPreview">👤</div>
-        <div class="pv-field"><label>Photo URL</label><input type="url" id="pfPhoto" placeholder="https://..."></div>
+        <div class="photo-grid" id="photoGrid"></div>
+        <div class="photo-add">
+          <input type="url" id="pfPhotoInput" placeholder="https://... (image URL)">
+          <button type="button" id="pfPhotoAddBtn">Add photo</button>
+        </div>
+        <small style="display:block;color:var(--text-faint);font-size:11.5px;margin:-8px 0 14px;">Up to <span id="maxPhotosLabel">9</span> photos. First photo is your primary photo.</small>
         <div class="pv-field"><label>Name</label><input type="text" id="pfName"></div>
         <div style="display:flex;gap:10px;">
           <div class="pv-field" style="flex:1;"><label>Age</label><input type="number" id="pfAge"></div>
@@ -237,6 +430,12 @@
   <section class="col view secondary-view" id="view-premium">
     <div class="col-header"><h1>Matchify Premium</h1></div>
     <div class="col-scroll">
+      <div style="display:flex;justify-content:center;margin:0 0 18px;">
+        <div class="auth-tabs" style="max-width:260px;">
+          <div class="auth-tab active" data-cycle="monthly">Monthly</div>
+          <div class="auth-tab" data-cycle="yearly">Yearly</div>
+        </div>
+      </div>
       <div class="plans-wrap">
         <div class="plan-card">
           <div class="plan-name">Free</div>
@@ -245,30 +444,53 @@
           <button class="plan-btn ghost" data-plan="free">Current plan</button>
         </div>
         <div class="plan-card">
+          <div class="plan-name">Day Pass</div>
+          <div class="plan-price">₹50<small>/24 hours</small></div>
+          <div class="plan-feat">✔ Unlimited swipes for 24h<br>✔ Unlimited text talks for 24h<br>✔ No subscription — one-time unlock<br>✘ No AI companion</div>
+          <button class="plan-btn" data-plan="day_pass">Buy day pass</button>
+        </div>
+        <div class="plan-card">
           <div class="plan-name">Plus</div>
-          <div class="plan-price">₹49<small>/month</small></div>
-          <div class="plan-feat">✔ More daily swipes<br>✔ Voice &amp; video calls<br>✔ No ads<br>✔ Extra profile customization</div>
+          <div class="plan-price cycle-price" data-monthly="₹99<small>/month</small>" data-yearly="₹999<small>/year</small>">₹99<small>/month</small></div>
+          <div class="plan-feat">✔ Unlimited swipes<br>✔ Voice &amp; video calls<br>✔ No ads<br>✔ Extra profile customization</div>
           <button class="plan-btn" data-plan="plus">Subscribe</button>
         </div>
         <div class="plan-card reco">
           <div class="plan-badge">Most popular</div>
           <div class="plan-name">Pro</div>
-          <div class="plan-price">₹99<small>/month</small></div>
-          <span class="plan-exclusive">Best value</span>
-          <div class="plan-feat">✔ Everything in Plus<br>✔ Unlimited swipes<br>✔ See who liked you<br>✔ Priority discovery</div>
+          <div class="plan-price cycle-price" data-monthly="₹499<small>/month</small>" data-yearly="₹4999<small>/year</small>">₹499<small>/month</small></div>
+          <span class="plan-exclusive cycle-badge" data-yearly-only style="display:none;">Autopay</span>
+          <div class="plan-feat">✔ Everything in Plus<br>✔ AI Talk with multiple companion modes<br>✔ AI icebreakers, reply suggestions &amp; translation<br>✔ See who liked you<br>✔ Priority discovery</div>
           <button class="plan-btn" data-plan="pro">Subscribe</button>
         </div>
-        <div class="plan-card">
-          <div class="plan-name">Ultra</div>
-          <div class="plan-price">₹199<small>/month</small></div>
-          <div class="plan-feat">✔ Everything in Pro<br>✔ Maximum discovery<br>✔ Profile boosts<br>✔ Premium profile features</div>
-          <button class="plan-btn" data-plan="ultra">Subscribe</button>
-        </div>
       </div>
+      <p class="plan-note" id="autopayNote" style="display:none;">Pro's yearly plan (₹4999/year) renews automatically each year until cancelled. You can cancel autopay anytime from account settings.</p>
       <p class="plan-note">Payments are mocked for now — no real charge is made. Wire up Razorpay on the backend (<code>/api/users/subscribe</code>) when you're ready to accept real payments.</p>
+
     </div>
   </section>
 
+</div>
+
+<!-- Report reason mini-modal -->
+<div class="mini-modal-bg" id="reportModal">
+  <div class="mini-modal">
+    <h3>Report this person</h3>
+    <select id="reportReason">
+      <option value="inappropriate_messages">Inappropriate messages</option>
+      <option value="inappropriate_photos">Inappropriate photos</option>
+      <option value="harassment">Harassment or abuse</option>
+      <option value="spam_or_scam">Spam or scam</option>
+      <option value="fake_profile">Fake profile</option>
+      <option value="underage_suspected">I believe this user is under 18</option>
+      <option value="other">Other</option>
+    </select>
+    <textarea id="reportDetails" rows="3" placeholder="Additional details (optional)"></textarea>
+    <div class="row">
+      <button class="cancel" id="reportCancelBtn">Cancel</button>
+      <button class="confirm" id="reportConfirmBtn">Submit report</button>
+    </div>
+  </div>
 </div>
 
 <!-- Incoming call modal -->
@@ -314,6 +536,7 @@
   <div class="bn-item" data-nav="matches">💛<span>Matches</span></div>
   <div class="bn-item" data-nav="chat">💬<span>Chat</span><span class="bn-badge" id="chatNavBadgeMobile" style="display:none;">0</span></div>
   <div class="bn-item" data-nav="premium">💎<span>Premium</span></div>
+  <div class="bn-item" data-nav="ai">🤖<span>AI Talk</span></div>
   <div class="bn-item" data-nav="profile">👤<span>Profile</span></div>
 </nav>
 
