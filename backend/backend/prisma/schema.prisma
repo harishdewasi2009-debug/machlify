@@ -1,0 +1,741 @@
+// Matchify — Prisma schema
+// Full data model. This chunk (auth + database) implements User, Session,
+// RefreshToken, EmailVerificationToken, PasswordResetToken and Device fully.
+// The remaining tables are defined now so later subsystems (photos, discovery,
+// chat, payments, verification, admin) attach without a schema rewrite.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ---------------------------------------------------------------------------
+// AUTH
+// ---------------------------------------------------------------------------
+
+enum AuthProvider {
+  PASSWORD
+  GOOGLE
+}
+
+enum AccountStatus {
+  ACTIVE
+  SUSPENDED
+  DELETED
+  PENDING_DELETION
+}
+
+model User {
+  id            String        @id @default(cuid())
+  email         String        @unique
+  emailVerified Boolean       @default(false)
+  passwordHash  String? // null for OAuth-only accounts
+  provider      AuthProvider  @default(PASSWORD)
+  googleId      String?       @unique
+  dateOfBirth   DateTime // collected once at registration, never trusted from client after
+  gender        String
+  status        AccountStatus @default(ACTIVE)
+
+  // Cached copy of the latest VerificationSession's outcome, kept in sync by
+  // verification.service so discovery-gating reads don't need a join on
+  // every request. VerificationSession/VerificationEvent below remain the
+  // source of truth / audit trail.
+  verificationStatus VerificationStatus @default(UNVERIFIED)
+
+  failedLoginAttempts Int       @default(0)
+  lockedUntil         DateTime?
+
+  // Set when the user requests account deletion; cleared if they restore
+  // within the grace period. The purge script (chunk 10) permanently
+  // anonymizes any account still PENDING_DELETION once this passes.
+  scheduledDeletionAt DateTime?
+
+  createdAt DateTime @updatedAt @default(now())
+  updatedAt DateTime @updatedAt
+  deletedAt DateTime?
+
+  profile               Profile?
+  photos                Photo[]
+  preferences           Preference?
+  devices               Device[]
+  sessions              Session[]
+  refreshTokens         RefreshToken[]
+  emailVerificationTokens EmailVerificationToken[]
+  passwordResetTokens   PasswordResetToken[]
+  accountDeletionTokens AccountDeletionToken[]
+
+  userInterests         UserInterest[]
+  swipesGiven           Swipe[]              @relation("SwipeActor")
+  swipesReceived        Swipe[]              @relation("SwipeTarget")
+  matchesAsA            Match[]              @relation("MatchUserA")
+  matchesAsB            Match[]              @relation("MatchUserB")
+  conversationMembers   ConversationMember[]
+  messagesSent          Message[]
+  blocksMade            Block[]              @relation("BlockBlocker")
+  blocksReceived        Block[]              @relation("BlockBlocked")
+  reportsMade           Report[]             @relation("ReportReporter")
+  reportsReceived       Report[]             @relation("ReportReported")
+  notifications         Notification[]
+  notificationPreference NotificationPreference?
+  verificationSessions  VerificationSession[]
+  subscriptions         Subscription[]
+  payments              Payment[]
+  callsAsCaller         Call[]               @relation("CallCaller")
+  callsAsCallee         Call[]               @relation("CallCallee")
+  randomChatSettings    RandomChatSettings?
+  randomChatQueueEntry  RandomChatQueue?
+  randomChatBan         RandomChatBan?
+  randomChatSessionsAs1 RandomChatSession[]  @relation("RCSessionUser1")
+  randomChatSessionsAs2 RandomChatSession[]  @relation("RCSessionUser2")
+  randomChatMessages    RandomChatMessage[]
+  presence              UserPresence?
+  randomChatAlerts      RandomChatAbuseAlert[]
+
+  @@index([email])
+  @@index([status])
+  @@index([verificationStatus])
+}
+
+// Server-side session record. The access token is a short-lived JWT that is
+// never persisted; this row exists so a session can be revoked (logout,
+// logout-all-devices, security event) before its JWT would otherwise expire.
+model Session {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  deviceId  String?
+  device    Device?  @relation(fields: [deviceId], references: [id])
+  userAgent String?
+  ipAddress String?
+  revoked   Boolean  @default(false)
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  refreshTokens RefreshToken[]
+
+  @@index([userId])
+}
+
+// Refresh tokens are stored hashed (never plaintext) so a leaked database
+// dump cannot be replayed directly. One-time use: rotated on every refresh.
+model RefreshToken {
+  id        String   @id @default(cuid())
+  tokenHash String   @unique
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  sessionId String
+  session   Session  @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  revoked   Boolean  @default(false)
+  replacedBy String?
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@index([sessionId])
+}
+
+model EmailVerificationToken {
+  id        String   @id @default(cuid())
+  tokenHash String   @unique
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  usedAt    DateTime?
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+}
+
+model PasswordResetToken {
+  id        String    @id @default(cuid())
+  tokenHash String    @unique
+  userId    String
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  usedAt    DateTime?
+  expiresAt DateTime
+  createdAt DateTime  @default(now())
+
+  @@index([userId])
+}
+
+// Lets a user cancel a pending account deletion during the grace period,
+// without re-enabling login on a PENDING_DELETION account (login itself
+// stays blocked — see auth.service.ts). One raw token, emailed once,
+// hashed at rest — same pattern as PasswordResetToken.
+model AccountDeletionToken {
+  id        String    @id @default(cuid())
+  tokenHash String    @unique
+  userId    String
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  usedAt    DateTime?
+  expiresAt DateTime
+  createdAt DateTime  @default(now())
+
+  @@index([userId])
+}
+
+model Device {
+  id            String    @id @default(cuid())
+  userId        String
+  user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  pushToken     String? // reserved for a future native (FCM/APNs) integration
+  platform      String? // ios | android | web
+  // Web Push (VAPID) subscription, one row per browser/device the user has
+  // granted notification permission on. A given endpoint is registered by
+  // exactly one Device at a time — re-subscribing (e.g. after clearing site
+  // data) upserts onto the same endpoint rather than accumulating duplicates.
+  pushEndpoint  String?   @unique
+  pushP256dh    String?
+  pushAuthKey   String?
+  lastSeenAt    DateTime  @default(now())
+  createdAt     DateTime  @default(now())
+
+  sessions Session[]
+
+  @@index([userId])
+}
+
+// ---------------------------------------------------------------------------
+// PROFILE / PHOTOS (schema only in this chunk — implemented in a later pass)
+// ---------------------------------------------------------------------------
+
+model Profile {
+  id                 String   @id @default(cuid())
+  userId             String   @unique
+  user               User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  displayName        String
+  bio                String?
+  latitude           Float?
+  longitude          Float?
+  education          String?
+  occupation         String?
+  languages          String[] @default([])
+  relationshipIntent String?
+  isDiscoverable     Boolean  @default(false) // flips true only after verification + at least one approved photo
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+}
+
+enum PhotoStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  MANUAL_REVIEW
+}
+
+model Photo {
+  id                String      @id @default(cuid())
+  userId            String
+  user              User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  storageKey        String
+  thumbnailKey      String?
+  mediumKey         String?
+  largeKey          String?
+  status            PhotoStatus @default(PENDING)
+  isPrimary         Boolean     @default(false)
+  position          Int         @default(0)
+  contentHash       String? // sha256 of the processed image, for duplicate/reuse detection
+  moderationScores  Json? // raw provider scores, kept for admin manual-review context
+  createdAt         DateTime    @default(now())
+
+  @@index([userId])
+  @@index([contentHash])
+}
+
+model Interest {
+  id    String @id @default(cuid())
+  name  String @unique
+
+  users UserInterest[]
+}
+
+model UserInterest {
+  userId     String
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  interestId String
+  interest   Interest @relation(fields: [interestId], references: [id], onDelete: Cascade)
+
+  @@id([userId, interestId])
+}
+
+model Preference {
+  id            String @id @default(cuid())
+  userId        String @unique
+  user          User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  minAge        Int    @default(18)
+  maxAge        Int    @default(99)
+  maxDistanceKm Int    @default(50)
+  genders       String[] @default([])
+}
+
+// ---------------------------------------------------------------------------
+// DISCOVERY / MATCHING / CHAT (schema only in this chunk)
+// ---------------------------------------------------------------------------
+
+model Swipe {
+  id           String   @id @default(cuid())
+  actorId      String
+  actor        User     @relation("SwipeActor", fields: [actorId], references: [id], onDelete: Cascade)
+  targetId     String
+  target       User     @relation("SwipeTarget", fields: [targetId], references: [id], onDelete: Cascade)
+  liked        Boolean
+  createdAt    DateTime @default(now())
+
+  @@unique([actorId, targetId])
+  @@index([targetId])
+}
+
+model Match {
+  id        String   @id @default(cuid())
+  userAId   String
+  userA     User     @relation("MatchUserA", fields: [userAId], references: [id], onDelete: Cascade)
+  userBId   String
+  userB     User     @relation("MatchUserB", fields: [userBId], references: [id], onDelete: Cascade)
+  status    String   @default("ACTIVE")
+  createdAt DateTime @default(now())
+
+  conversation Conversation?
+  calls        Call[]
+
+  @@unique([userAId, userBId])
+}
+
+model Conversation {
+  id        String   @id @default(cuid())
+  matchId   String   @unique
+  match     Match    @relation(fields: [matchId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  members  ConversationMember[]
+  messages Message[]
+}
+
+model ConversationMember {
+  conversationId String
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  userId         String
+  user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  joinedAt       DateTime     @default(now())
+
+  @@id([conversationId, userId])
+}
+
+model Message {
+  id             String       @id @default(cuid())
+  conversationId String
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  senderId       String
+  sender         User         @relation(fields: [senderId], references: [id], onDelete: Cascade)
+  content        String
+  type           String       @default("TEXT")
+  readAt         DateTime?
+  deletedAt      DateTime?
+  createdAt      DateTime     @default(now())
+
+  @@index([conversationId, createdAt])
+}
+
+model Block {
+  id        String   @id @default(cuid())
+  blockerId String
+  blocker   User     @relation("BlockBlocker", fields: [blockerId], references: [id], onDelete: Cascade)
+  blockedId String
+  blocked   User     @relation("BlockBlocked", fields: [blockedId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@unique([blockerId, blockedId])
+}
+
+model Report {
+  id           String   @id @default(cuid())
+  reporterId   String
+  reporter     User     @relation("ReportReporter", fields: [reporterId], references: [id], onDelete: Cascade)
+  reportedId   String
+  reported     User     @relation("ReportReported", fields: [reportedId], references: [id], onDelete: Cascade)
+  reason       String
+  targetType   String // PROFILE | PHOTO | MESSAGE | USER | RANDOM_CHAT
+  targetId     String?
+  description  String?  // optional free text from the reporter
+  chatSessionId String? // set for reports filed from inside a Random Chat session
+  status       String   @default("OPEN")
+  createdAt    DateTime @default(now())
+
+  @@index([chatSessionId])
+  @@index([reportedId, createdAt])
+}
+
+model Notification {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type      String
+  payload   Json?
+  readAt    DateTime?
+  createdAt DateTime @default(now())
+
+  @@index([userId, createdAt])
+}
+
+// Per-user, per-notification-type push opt-outs. disabledTypes is an
+// opt-out list (not opt-in): a type absent from it means push is enabled, so
+// existing users get pushes for new notification types added later without
+// a migration needing to backfill anything. SECURITY is never suppressible
+// here regardless of what's stored — see push.service.
+model NotificationPreference {
+  id            String   @id @default(cuid())
+  userId        String   @unique
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  disabledTypes String[] @default([])
+  updatedAt     DateTime @updatedAt
+}
+
+// ---------------------------------------------------------------------------
+// VERIFICATION / PAYMENTS / ADMIN (schema only in this chunk)
+// ---------------------------------------------------------------------------
+
+enum VerificationStatus {
+  UNVERIFIED
+  PENDING
+  PROCESSING
+  MANUAL_REVIEW
+  VERIFIED
+  REJECTED
+}
+
+model VerificationSession {
+  id                 String              @id @default(cuid())
+  userId             String
+  user               User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  provider           String
+  providerSessionId  String?
+  status             VerificationStatus  @default(PENDING)
+  createdAt          DateTime            @default(now())
+  updatedAt          DateTime            @updatedAt
+
+  events VerificationEvent[]
+
+  @@index([userId])
+}
+
+model VerificationEvent {
+  id                     String              @id @default(cuid())
+  verificationSessionId  String
+  verificationSession    VerificationSession @relation(fields: [verificationSessionId], references: [id], onDelete: Cascade)
+  status                 VerificationStatus
+  rawPayloadHash         String // store a hash, not the raw provider payload, to avoid retaining sensitive ID data
+  createdAt              DateTime            @default(now())
+}
+
+// status: ACTIVE (paid and within endDate) | CANCELLED (no further renewal,
+// but access remains until endDate) | EXPIRED (endDate has passed) |
+// REFUNDED (revoked early because the underlying payment was refunded).
+// This app sells fixed-term plans via one-time Razorpay orders rather than
+// Razorpay's separate recurring-mandate Subscriptions API, so "renewal"
+// means the user purchases another order before endDate — see
+// subscription.service.activateFromPayment.
+model Subscription {
+  id                     String    @id @default(cuid())
+  userId                 String
+  user                   User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  plan                   String
+  status                 String
+  currency               String?
+  startDate              DateTime
+  endDate                DateTime?
+  providerSubscriptionId String?
+  createdAt              DateTime  @default(now())
+  updatedAt              DateTime  @updatedAt
+
+  @@index([userId])
+  @@index([userId, status])
+}
+
+// status: CREATED (order placed with Razorpay, not yet paid) | PAID
+// (signature-verified or webhook-confirmed) | FAILED | REFUNDED.
+model Payment {
+  id         String   @id @default(cuid())
+  userId     String
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  provider   String
+  orderId    String   @unique
+  paymentId  String?
+  signature  String? // last verified razorpay_signature, kept for audit only — never re-used to authorize anything later
+  amount     Int // smallest currency unit (e.g. paise for INR), matching what was sent to Razorpay
+  currency   String
+  status     String
+  metadata   Json? // e.g. { "plan": "PREMIUM" } — which plan this order was for
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@index([userId])
+}
+
+// Idempotency ledger for Razorpay webhook deliveries. Razorpay's webhook
+// payload has no single canonical "event id" field across all event types,
+// so a hash of the exact raw body is used as the dedupe key — an identical
+// redelivery (Razorpay retries on anything but a 2xx) hashes identically and
+// is therefore a no-op the second time, exactly like VerificationEvent does
+// for Stripe's own event ids.
+model PaymentWebhookEvent {
+  id        String   @id @default(cuid())
+  eventHash String   @unique
+  createdAt DateTime @default(now())
+}
+
+// ---------------------------------------------------------------------------
+// VOICE / VIDEO CALLING
+// ---------------------------------------------------------------------------
+
+enum CallType {
+  VOICE
+  VIDEO
+}
+
+// RINGING: invite sent, not yet answered.
+// ACCEPTED: callee accepted; media should be flowing (client-reported, not
+//   trusted for billing/analytics — startedAt/endedAt below are server clock).
+// REJECTED: callee explicitly declined.
+// MISSED: nobody answered before the ring timeout.
+// BUSY: callee was already on another active call.
+// ENDED: a normal hangup after being accepted.
+// FAILED: either party disconnected before ICE/media ever connected.
+enum CallStatus {
+  RINGING
+  ACCEPTED
+  REJECTED
+  MISSED
+  BUSY
+  ENDED
+  FAILED
+}
+
+model Call {
+  id         String     @id @default(cuid())
+  matchId    String
+  match      Match      @relation(fields: [matchId], references: [id], onDelete: Cascade)
+  callerId   String
+  caller     User       @relation("CallCaller", fields: [callerId], references: [id], onDelete: Cascade)
+  calleeId   String
+  callee     User       @relation("CallCallee", fields: [calleeId], references: [id], onDelete: Cascade)
+  type       CallType
+  status     CallStatus @default(RINGING)
+  startedAt  DateTime? // set only when ACCEPTED — this is what duration is computed from
+  endedAt    DateTime?
+  createdAt  DateTime   @default(now())
+
+  @@index([matchId])
+  @@index([callerId])
+  @@index([calleeId])
+}
+
+model AdminUser {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  passwordHash String
+  role         String   @default("MODERATOR") // MODERATOR | ADMIN — see middleware/adminAuth.middleware.ts
+
+  failedLoginAttempts Int       @default(0)
+  lockedUntil         DateTime?
+
+  createdAt    DateTime @default(now())
+
+  sessions  AdminSession[]
+  auditLogs AdminAuditLog[]
+}
+
+// Mirrors the user-facing Session model: a revocable server-side row backing
+// the admin's short-lived JWT, so "log out" and a forced revocation (e.g. an
+// admin account being deactivated) actually take effect before the JWT
+// would otherwise expire on its own. Deliberately separate from the
+// end-user Session table and signed with its own secret
+// (ADMIN_JWT_SECRET) — a leaked/forged end-user token must never be
+// usable as an admin token and vice versa.
+model AdminSession {
+  id          String    @id @default(cuid())
+  adminUserId String
+  adminUser   AdminUser @relation(fields: [adminUserId], references: [id], onDelete: Cascade)
+  userAgent   String?
+  ipAddress   String?
+  revoked     Boolean   @default(false)
+  expiresAt   DateTime
+  createdAt   DateTime  @default(now())
+
+  @@index([adminUserId])
+}
+
+model AdminAuditLog {
+  id          String    @id @default(cuid())
+  adminUserId String
+  adminUser   AdminUser @relation(fields: [adminUserId], references: [id], onDelete: Cascade)
+  action      String
+  targetType  String?
+  targetId    String?
+  metadata    Json?
+  createdAt   DateTime  @default(now())
+
+  @@index([adminUserId])
+  @@index([createdAt])
+}
+
+// ---------------------------------------------------------------------------
+// RANDOM CHAT
+// ---------------------------------------------------------------------------
+// Likes reuse Swipe/Match (a random-chat "like" is a normal Swipe, so mutual
+// likes create the same Match + Conversation as Discovery). Blocks reuse
+// Block; reports reuse Report (targetType RANDOM_CHAT + chatSessionId).
+
+// PUBLIC:      shown in Discovery and eligible for Random Chat
+// RANDOM_CHAT: eligible for Random Chat only
+// MATCH_ONLY:  never shown to strangers; not eligible for Random Chat
+// PRIVATE:     hidden from everyone but the owner; not eligible
+enum RandomChatVisibility {
+  PUBLIC
+  RANDOM_CHAT
+  MATCH_ONLY
+  PRIVATE
+}
+
+// One row per user. Created the first time the user opens Random Chat.
+// Everything the *other* person sees on the profile card is controlled by the
+// show* flags below; nothing is shown that the user has not enabled.
+model RandomChatSettings {
+  userId       String   @id
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  visibility   RandomChatVisibility @default(RANDOM_CHAT)
+
+  // What the partner's profile card may show
+  showAge       Boolean @default(true)
+  showLocation  Boolean @default(false)
+  showBio       Boolean @default(true)
+  showInterests Boolean @default(true)
+  // Free-text, user-typed general area ("Jaipur, Rajasthan"). Never derived
+  // from stored coordinates, so an exact location can't leak through it.
+  locationLabel String?
+
+  // Matching preferences. Empty arrays / null = "Anyone".
+  prefMinAge    Int      @default(18)
+  prefMaxAge    Int      @default(99)
+  prefGenders   String[] @default([])
+  prefLanguages String[] @default([])
+  prefInterests String[] @default([]) // soft preference: improves ranking, never required
+  prefSameRegion Boolean @default(false)
+
+  updatedAt    DateTime @updatedAt
+  createdAt    DateTime @default(now())
+}
+
+enum RandomChatQueueStatus {
+  WAITING
+  MATCHED
+  CHATTING
+  LEFT
+  BLOCKED
+}
+
+// One row per user (userId unique). Holds a *snapshot* of the user's
+// preferences at join time so the matcher never needs joins for the hot path.
+model RandomChatQueue {
+  id            String   @id @default(cuid())
+  userId        String   @unique
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  status        RandomChatQueueStatus @default(WAITING)
+
+  age           Int
+  gender        String
+  genderPreference String[] @default([])
+  minAge        Int      @default(18)
+  maxAge        Int      @default(99)
+  languages     String[] @default([])
+  interests     String[] @default([])
+  regionKey     String?  // lower-cased locationLabel, set only when sameRegion is requested
+  sameRegion    Boolean  @default(false)
+
+  joinedAt      DateTime @default(now())
+  lastHeartbeat DateTime @default(now())
+  socketId      String?
+
+  @@index([status])
+  @@index([joinedAt])
+  @@index([status, lastHeartbeat])
+}
+
+enum RandomChatSessionStatus {
+  ACTIVE
+  ENDED
+}
+
+model RandomChatSession {
+  id          String   @id @default(cuid())
+  user1Id     String
+  user1       User     @relation("RCSessionUser1", fields: [user1Id], references: [id], onDelete: Cascade)
+  user2Id     String
+  user2       User     @relation("RCSessionUser2", fields: [user2Id], references: [id], onDelete: Cascade)
+  status      RandomChatSessionStatus @default(ACTIVE)
+  startedAt   DateTime @default(now())
+  endedAt     DateTime?
+  endedById   String?  // null when ended by the system
+  endReason   String?  // ENDED | NEXT | BLOCKED | DISCONNECTED | ADMIN | REPORTED | ACCOUNT
+  user1SeenAt DateTime @default(now())
+  user2SeenAt DateTime @default(now())
+  createdAt   DateTime @default(now())
+
+  messages RandomChatMessage[]
+
+  @@index([user1Id])
+  @@index([user2Id])
+  @@index([status])
+  @@index([user1Id, user2Id])
+}
+
+model RandomChatMessage {
+  id          String   @id @default(cuid())
+  sessionId   String
+  session     RandomChatSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  senderId    String
+  sender      User     @relation(fields: [senderId], references: [id], onDelete: Cascade)
+  clientId    String?  // client-generated id so a retried send is idempotent
+  content     String
+  deliveredAt DateTime?
+  readAt      DateTime?
+  createdAt   DateTime @default(now())
+
+  @@unique([sessionId, senderId, clientId])
+  @@index([sessionId, createdAt])
+}
+
+model UserPresence {
+  userId     String   @id
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  online     Boolean  @default(false)
+  lastSeenAt DateTime @default(now())
+}
+
+// Feature-level ban from Random Chat (independent of account suspension).
+// until = null means permanent until an admin lifts it.
+model RandomChatBan {
+  userId    String   @id
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  reason    String
+  until     DateTime?
+  auto      Boolean  @default(false) // true when applied by abuse detection rather than a person
+  createdBy String?  // AdminUser id
+  createdAt DateTime @default(now())
+}
+
+model RandomChatAbuseAlert {
+  id         String   @id @default(cuid())
+  userId     String
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type       String   // MESSAGE_SPAM | BLOCKED_CONTENT | RAPID_SKIPPING | MULTI_REPORT | DUPLICATE_PHOTO | NEW_ACCOUNT_BURST
+  detail     String?
+  createdAt  DateTime @default(now())
+  resolvedAt DateTime?
+
+  @@index([userId, createdAt])
+  @@index([resolvedAt])
+}
