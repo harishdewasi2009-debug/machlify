@@ -13,7 +13,9 @@
     "account:purge": "tsx src/scripts/purgeDeletedAccounts.ts",
     "test": "vitest run",
     "test:watch": "vitest",
-    "test:coverage": "vitest run --coverage"
+    "test:coverage": "vitest run --coverage",
+    "demo:seed": "tsx src/scripts/seedDemo.ts",
+    "demo:seed:prod": "node dist/scripts/seedDemo.js"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.658.0",
