@@ -1,3 +1,4 @@
+import { Prisma } from "@prisma/client";
 import { prisma } from "../config/prisma";
 
 const AUDIT_PAGE_SIZE = 50;
@@ -14,7 +15,7 @@ export async function logAdminAction(
   metadata?: Record<string, unknown>
 ): Promise<void> {
   await prisma.adminAuditLog.create({
-    data: { adminUserId, action, targetType, targetId, metadata: metadata ?? undefined },
+    data: { adminUserId, action, targetType, targetId, metadata: (metadata ?? undefined) as Prisma.InputJsonValue | undefined },
   });
 }
 
