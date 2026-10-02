@@ -1,4 +1,5 @@
 import { cleanupUser as cleanupRandomChatUser } from "./randomChat/matchmaking.service";
+import { Prisma } from "@prisma/client";
 import { prisma } from "../config/prisma";
 import { Errors } from "../utils/apiError";
 import { logAdminAction } from "./adminAudit.service";
@@ -13,9 +14,9 @@ interface ListUsersFilter {
 }
 
 export async function listUsers(filter: ListUsersFilter) {
-  const where = {
-    ...(filter.status ? { status: filter.status } : {}),
-    ...(filter.verificationStatus ? { verificationStatus: filter.verificationStatus } : {}),
+  const where: Prisma.UserWhereInput = {
+    ...(filter.status ? { status: filter.status as Prisma.UserWhereInput["status"] } : {}),
+    ...(filter.verificationStatus ? { verificationStatus: filter.verificationStatus as Prisma.UserWhereInput["verificationStatus"] } : {}),
     ...(filter.query
       ? {
           OR: [
