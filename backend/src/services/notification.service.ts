@@ -1,3 +1,4 @@
+import { Prisma } from "@prisma/client";
 import { prisma } from "../config/prisma";
 import { Errors } from "../utils/apiError";
 import { emitToUser } from "../websocket/socket";
@@ -6,7 +7,7 @@ import { sendPushToUser } from "./push.service";
 const NOTIFICATION_PAGE_SIZE = 30;
 
 export async function createNotification(userId: string, type: string, payload: Record<string, unknown>) {
-  const notification = await prisma.notification.create({ data: { userId, type, payload } });
+  const notification = await prisma.notification.create({ data: { userId, type, payload: payload as Prisma.InputJsonObject } });
   // The row is the source of truth (so GET /api/notifications always reflects
   // reality even if the user was offline); the socket push is a live nudge on
   // top of it for a connected client, not a replacement for it.
