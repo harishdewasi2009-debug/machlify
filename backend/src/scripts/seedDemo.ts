@@ -8,7 +8,8 @@
 // Override with DEMO_EMAIL / DEMO_PASSWORD / DEMO_ADMIN_EMAIL /
 // DEMO_ADMIN_PASSWORD. Disable entirely with SEED_DEMO=false.
 //
-// Run manually: npm run demo:seed   (after `npm run build`: npm run demo:seed:prod)
+// Runs automatically every time the server starts (see server.ts), or
+// manually: npm run demo:seed
 import { prisma } from "../config/prisma";
 import { hashPassword } from "../utils/password";
 
@@ -115,7 +116,7 @@ async function upsertPerson(
   return user;
 }
 
-async function main() {
+export async function seedDemo(): Promise<void> {
   if (process.env.SEED_DEMO === "false") {
     console.log("SEED_DEMO=false — skipping demo seed.");
     return;
@@ -140,10 +141,12 @@ async function main() {
   console.log(`Demo ready -> user: ${DEMO_EMAIL} / ${DEMO_PASSWORD} | admin: ${DEMO_ADMIN_EMAIL} / ${DEMO_ADMIN_PASSWORD}`);
 }
 
-main()
-  .catch((err) => {
-    // Never block the server from starting just because the demo seed failed.
-    console.error("Demo seed failed:", err);
-    process.exitCode = 0;
-  })
-  .finally(() => prisma.$disconnect());
+// Only auto-run when executed directly (npm run demo:seed). When imported by
+// server.ts, the server calls seedDemo() itself and keeps the DB connection.
+if (require.main === module) {
+  seedDemo()
+    .catch((err) => {
+      console.error("Demo seed failed:", err);
+    })
+    .finally(() => prisma.$disconnect());
+}
