@@ -1,6 +1,8 @@
 import cookieParser from "cookie-parser";
 import cors from "cors";
 import express from "express";
+import fs from "fs";
+import path from "path";
 import helmet from "helmet";
 import { env } from "./config/env";
 import { errorHandler } from "./middleware/errorHandler.middleware";
@@ -26,6 +28,17 @@ import * as paymentController from "./controllers/payment.controller";
 import { asyncHandler } from "./utils/asyncHandler";
 
 export const app = express();
+
+// Serve the frontend (index.html, admin.html, sw.js) from the same server, so
+// the website and the API share one address (no CORS/cookie problems).
+// Registered BEFORE helmet() so helmet's strict Content-Security-Policy
+// (which blocks inline <script>) is not applied to these static pages.
+const frontendDir = [path.resolve(__dirname, "../../frontend"), path.resolve(__dirname, "../frontend")].find((dir) =>
+  fs.existsSync(path.join(dir, "index.html"))
+);
+if (frontendDir) {
+  app.use(express.static(frontendDir));
+}
 
 app.use(helmet());
 app.use(
