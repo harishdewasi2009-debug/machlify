@@ -1,5 +1,5 @@
 import { prisma } from "../config/prisma";
-import { env } from "../config/env";
+import { env, emailConfigured } from "../config/env";
 import { Errors } from "../utils/apiError";
 import { calculateAge } from "../utils/age";
 import { hashPassword, isPasswordStrongEnough, verifyPassword } from "../utils/password";
@@ -67,9 +67,19 @@ export async function registerUser(input: RegisterInput) {
     data: { userId: user.id, tokenHash: hash, expiresAt: addDays(new Date(), 1) },
   });
 
-  // If email isn't configured, this throws a real 503 rather than silently
-  // marking the account as verified or pretending an email went out.
-  await sendVerificationEmail(user.email, raw, env.APP_ORIGIN);
+  // A failed verification email must not fail sign-up (the account already exists).
+  // With no SMTP configured there is no way to verify, so mark the email verified
+  // instead of leaving the user stuck.
+  if (!emailConfigured) {
+    console.warn("[auth] SMTP not configured: marking email as verified for", user.email);
+    await prisma.user.update({ where: { id: user.id }, data: { emailVerified: true } });
+  } else {
+    try {
+      await sendVerificationEmail(user.email, raw, env.APP_ORIGIN);
+    } catch (err) {
+      console.error("[auth] Could not send verification email:", err);
+    }
+  }
 
   return { id: user.id, email: user.email };
 }

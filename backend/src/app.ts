@@ -40,7 +40,9 @@ if (frontendDir) {
   app.use(express.static(frontendDir));
 }
 
-app.use(helmet());
+app.use(helmet({ crossOriginResourcePolicy: { policy: "cross-origin" } }));
+// Local photo storage fallback (used when S3 is not configured). Only profile photos are exposed.
+app.use("/uploads/users", express.static(path.join(path.resolve(env.UPLOAD_DIR), "users"), { maxAge: "7d" }));
 app.use(
   cors({
     origin: env.APP_ORIGIN,

@@ -19,6 +19,10 @@ interface SightengineResponse {
 // moderation provider — swap this file for another vendor's SDK without
 // touching photo.service.ts, since callers only depend on ModerationResult.
 export async function moderateImage(imageBuffer: Buffer): Promise<ModerationResult> {
+  if (!moderationConfigured && env.ALLOW_UNMODERATED_PHOTOS) {
+    console.warn("[moderation] No moderation provider configured: auto-approving photo (ALLOW_UNMODERATED_PHOTOS=true).");
+    return { status: "APPROVED", scores: {} };
+  }
   if (!moderationConfigured) {
     // Never default to APPROVED when moderation isn't configured — that
     // would let real, un-moderated photos reach discovery.

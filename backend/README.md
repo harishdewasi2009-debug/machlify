@@ -1305,3 +1305,15 @@ itself (everything so far is backend-only).
 ## Random Chat
 
 See [RANDOM_CHAT.md](./RANDOM_CHAT.md) for setup, matching rules, privacy model, API and scaling notes.
+
+## Zero-config fallbacks (added)
+
+So sign-up, photo upload and matching work without third-party accounts:
+
+| Missing config | Behaviour now |
+|---|---|
+| SMTP | Sign-up succeeds and the email is marked verified. Set `SMTP_*` to send real verification emails. |
+| S3/R2 | Photos are stored on local disk (`UPLOAD_DIR`, default `uploads/`) and served from `/uploads/users/...`. Render's disk is ephemeral; use S3/R2 (or a Render persistent disk) for real data. |
+| Sightengine | Photos are auto-approved (`ALLOW_UNMODERATED_PHOTOS`, default `true`). Set it to `false` in production once `MODERATION_API_*` is configured. |
+| Stripe Identity | `REQUIRE_IDENTITY_VERIFICATION` defaults to on only if Stripe is configured; otherwise users can discover and swipe. |
+| Google | Only `GOOGLE_CLIENT_ID` is needed (the secret is not used to verify ID tokens). Defaults to the Matchify client ID. |

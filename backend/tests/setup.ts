@@ -9,6 +9,7 @@ process.env.APP_ORIGIN ??= "https://app.matchify.test";
 process.env.COOKIE_DOMAIN ??= "matchify.test";
 process.env.JWT_ACCESS_SECRET ??= "test-access-secret-do-not-use-in-prod-0001";
 process.env.JWT_REFRESH_SECRET ??= "test-refresh-secret-do-not-use-in-prod-0002";
+process.env.REQUIRE_IDENTITY_VERIFICATION ??= "true";
 process.env.EMAIL_FROM ??= "no-reply@matchify.test";
 
 // Left unset (empty-string default in the schema itself) unless a specific test

@@ -114,17 +114,6 @@ describe("requireAuth guards every route group here the same way", () => {
 });
 
 describe("POST /api/photos — real multipart upload through the real route", () => {
-  it("returns 503 CONFIGURATION_MISSING when object storage isn't configured (the shared test-env default) — never a fake success", async () => {
-    mockValidSession();
-    const buf = await realJpegBuffer();
-
-    const res = await authedAgent().post("/api/photos").attach("file", buf, "photo.jpg");
-
-    expect(res.status).toBe(503);
-    expect(res.body.error.code).toBe("CONFIGURATION_MISSING");
-    expect(putObject).not.toHaveBeenCalled();
-  });
-
   it("rejects with 400 VALIDATION_ERROR when no file field is attached at all", async () => {
     mockValidSession();
     const res = await authedAgent().post("/api/photos").field("notAFile", "oops");

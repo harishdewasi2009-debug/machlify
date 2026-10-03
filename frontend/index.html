@@ -2077,10 +2077,9 @@
     document.getElementById('onboarding').remove();
   }
   document.getElementById('onbLogin').addEventListener('click', e=>{ e.preventDefault(); onbShow('onb-login-screen'); });
-  // Google/Apple sign-in aren't wired to anything real — no OAuth client ID
-  // is configured, and pretending they work would be a fake success state.
-  // Google sign-in: needs your OAuth client ID. Set window.MATCHIFY_GOOGLE_CLIENT_ID
-  // (the same value as GOOGLE_CLIENT_ID on the backend) before this script runs.
+  // Google sign-in uses Google Identity Services; the ID token is verified server-side.
+  // Override with window.MATCHIFY_GOOGLE_CLIENT_ID if needed (must match GOOGLE_CLIENT_ID on the backend).
+  // Apple sign-in is not wired up.
   function loadGsi(){
     return new Promise((resolve, reject)=>{
       if(window.google && window.google.accounts) return resolve();
@@ -2111,7 +2110,7 @@
     }
   }
   document.getElementById('onbGoogle').addEventListener('click', async ()=>{
-    const clientId = window.MATCHIFY_GOOGLE_CLIENT_ID;
+    const clientId = window.MATCHIFY_GOOGLE_CLIENT_ID || '708129325781-3a0o43ahkief4d0cmmr3pq550vk9507e.apps.googleusercontent.com';
     if(!clientId){ pfToast('Google sign-in isn\'t configured yet.'); return; }
     try{ await loadGsi(); }catch(err){ pfToast(err.message); return; }
     const wrap = document.createElement('div');

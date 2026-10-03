@@ -71,35 +71,22 @@ describe("registerUser", () => {
     await expect(registerUser(baseInput)).rejects.toMatchObject({ code: "EMAIL_IN_USE" });
   });
 
-  it("creates the user, an email-verification token, and sends the email on success", async () => {
+  it("creates the user and a verification token; with no SMTP configured it marks the email verified instead of failing", async () => {
     prismaMock.user.findUnique.mockResolvedValue(null);
     prismaMock.user.create.mockResolvedValue({ id: "user_1", email: baseInput.email } as any);
     prismaMock.emailVerificationToken.create.mockResolvedValue({} as any);
+    prismaMock.user.update.mockResolvedValue({} as any);
 
     const result = await registerUser(baseInput);
 
     expect(result).toEqual({ id: "user_1", email: baseInput.email });
     expect(prismaMock.user.create).toHaveBeenCalledTimes(1);
     expect(prismaMock.emailVerificationToken.create).toHaveBeenCalledTimes(1);
-    expect(emailService.sendVerificationEmail).toHaveBeenCalledWith(
-      baseInput.email,
-      expect.any(String),
-      expect.any(String)
-    );
-  });
-
-  it("propagates a 503 if the registration email can't be sent (never silently marks verified)", async () => {
-    prismaMock.user.findUnique.mockResolvedValue(null);
-    prismaMock.user.create.mockResolvedValue({ id: "user_1", email: baseInput.email } as any);
-    prismaMock.emailVerificationToken.create.mockResolvedValue({} as any);
-    vi.mocked(emailService.sendVerificationEmail).mockRejectedValueOnce(
-      Object.assign(new Error("Email delivery is not configured on this server."), {
-        code: "CONFIGURATION_MISSING",
-        statusCode: 503,
-      })
-    );
-
-    await expect(registerUser(baseInput)).rejects.toMatchObject({ code: "CONFIGURATION_MISSING" });
+    expect(emailService.sendVerificationEmail).not.toHaveBeenCalled();
+    expect(prismaMock.user.update).toHaveBeenCalledWith({
+      where: { id: "user_1" },
+      data: { emailVerified: true },
+    });
   });
 });
 

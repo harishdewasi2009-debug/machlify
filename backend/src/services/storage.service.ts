@@ -5,12 +5,14 @@ import {
   S3Client,
 } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
-import { env, storageConfigured } from "../config/env";
+import fs from "node:fs/promises";
+import path from "node:path";
+import { env, s3Configured } from "../config/env";
 import { Errors } from "../utils/apiError";
 
 // Works against real AWS S3 (leave S3_ENDPOINT blank) or an S3-compatible
 // provider like Cloudflare R2 (set S3_ENDPOINT to the R2 account endpoint).
-const client = storageConfigured
+const client = s3Configured
   ? new S3Client({
       region: env.S3_REGION,
       endpoint: env.S3_ENDPOINT || undefined,
@@ -19,12 +21,26 @@ const client = storageConfigured
     })
   : null;
 
+// Local-disk fallback when S3 is not configured. Note: Render's disk is ephemeral
+// unless a persistent disk is attached, so use S3/R2 for real production data.
+export const localUploadRoot = path.resolve(env.UPLOAD_DIR);
+function localPath(key: string) {
+  const full = path.resolve(localUploadRoot, key);
+  if (!full.startsWith(localUploadRoot + path.sep)) throw Errors.validation("Invalid storage key.");
+  return full;
+}
+
 function assertConfigured() {
   if (!client) throw Errors.configurationMissing("Object storage");
 }
 
 export async function putObject(key: string, body: Buffer, contentType: string): Promise<void> {
-  assertConfigured();
+  if (!client) {
+    const file = localPath(key);
+    await fs.mkdir(path.dirname(file), { recursive: true });
+    await fs.writeFile(file, body);
+    return;
+  }
   await client!.send(
     new PutObjectCommand({
       Bucket: env.S3_BUCKET,
@@ -39,7 +55,10 @@ export async function putObject(key: string, body: Buffer, contentType: string):
 }
 
 export async function deleteObject(key: string): Promise<void> {
-  assertConfigured();
+  if (!client) {
+    await fs.rm(localPath(key), { force: true });
+    return;
+  }
   await client!.send(new DeleteObjectCommand({ Bucket: env.S3_BUCKET, Key: key }));
 }
 
@@ -48,7 +67,7 @@ export async function deleteObject(key: string): Promise<void> {
 // URL; otherwise generate a short-lived signed URL so private storage
 // credentials are never exposed to the client.
 export async function getObjectUrl(key: string): Promise<string> {
-  assertConfigured();
+  if (!client) return `${env.APP_ORIGIN.replace(/\/$/, "")}/uploads/${key}`;
   if (env.S3_PUBLIC_BASE_URL) {
     return `${env.S3_PUBLIC_BASE_URL.replace(/\/$/, "")}/${key}`;
   }
@@ -71,7 +90,8 @@ export function buildVerificationSelfieKey(userId: string, sessionId: string) {
 }
 
 export async function getVerificationSelfieUrl(key: string): Promise<string> {
-  assertConfigured();
+  // Local mode: selfies are never served statically (only users/ is), so there is no URL to hand out.
+  if (!client) throw Errors.configurationMissing("Object storage (verification selfie viewing)");
   const command = new GetObjectCommand({ Bucket: env.S3_BUCKET, Key: key });
   return getSignedUrl(client!, command, { expiresIn: 60 * 15 }); // 15 minutes, always signed — never public
 }

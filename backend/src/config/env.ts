@@ -13,7 +13,7 @@ const envSchema = z.object({
   ACCESS_TOKEN_TTL_MIN: z.coerce.number().default(15),
   REFRESH_TOKEN_TTL_DAYS: z.coerce.number().default(30),
 
-  GOOGLE_CLIENT_ID: z.string().optional().default(""),
+  GOOGLE_CLIENT_ID: z.string().optional().default("708129325781-3a0o43ahkief4d0cmmr3pq550vk9507e.apps.googleusercontent.com"),
   GOOGLE_CLIENT_SECRET: z.string().optional().default(""),
 
   EMAIL_FROM: z.string().min(1),
@@ -42,6 +42,10 @@ const envSchema = z.object({
   S3_PUBLIC_BASE_URL: z.string().optional().default(""), // CDN/public base URL, if bucket is public
 
   // Photo moderation provider (Sightengine — https://sightengine.com)
+  // When no moderation provider is configured, accept photos instead of failing every upload.
+  // Set to "false" in production once Sightengine keys are set.
+  ALLOW_UNMODERATED_PHOTOS: z.string().optional().default("true").transform((v) => v !== "false"),
+  UPLOAD_DIR: z.string().optional().default("uploads"),
   MODERATION_API_USER: z.string().optional().default(""),
   MODERATION_API_SECRET: z.string().optional().default(""),
   MODERATION_REJECT_THRESHOLD: z.coerce.number().default(0.8),
@@ -56,11 +60,9 @@ const envSchema = z.object({
   // When true (the default), a user must be VERIFIED before they can appear
   // in or browse discovery. Set to "false" only in development while Stripe
   // Identity isn't configured yet — never in production.
-  REQUIRE_IDENTITY_VERIFICATION: z
-    .string()
-    .optional()
-    .default("true")
-    .transform((v) => v !== "false"),
+  // Unset = required only when Stripe Identity is configured (otherwise nobody could ever
+  // become VERIFIED and discovery/swiping would be permanently locked).
+  REQUIRE_IDENTITY_VERIFICATION: z.string().optional().default(""),
 
   // Voice/video calling. STUN alone is not reliable in production (it fails
   // for a large fraction of real users behind symmetric NAT/corporate
@@ -133,13 +135,22 @@ if (parsed.data.JWT_ACCESS_SECRET === parsed.data.JWT_REFRESH_SECRET) {
   throw new Error("JWT_ACCESS_SECRET and JWT_REFRESH_SECRET must be different values.");
 }
 
-export const env = parsed.data;
+export const env = {
+  ...parsed.data,
+  REQUIRE_IDENTITY_VERIFICATION:
+    parsed.data.REQUIRE_IDENTITY_VERIFICATION === ""
+      ? Boolean(parsed.data.STRIPE_SECRET_KEY && parsed.data.STRIPE_IDENTITY_WEBHOOK_SECRET)
+      : parsed.data.REQUIRE_IDENTITY_VERIFICATION !== "false",
+};
 
 export const isProduction = env.NODE_ENV === "production";
 
 export const emailConfigured = Boolean(env.SMTP_HOST && env.SMTP_USER && env.SMTP_PASSWORD);
-export const googleOAuthConfigured = Boolean(env.GOOGLE_CLIENT_ID && env.GOOGLE_CLIENT_SECRET);
-export const storageConfigured = Boolean(env.S3_ACCESS_KEY && env.S3_SECRET_KEY && env.S3_BUCKET);
+// Verifying a Google ID token only needs the client ID (the secret is for the code flow).
+export const googleOAuthConfigured = Boolean(env.GOOGLE_CLIENT_ID);
+export const s3Configured = Boolean(env.S3_ACCESS_KEY && env.S3_SECRET_KEY && env.S3_BUCKET);
+// Falls back to local disk storage when S3 is not configured, so uploads still work.
+export const storageConfigured = true;
 export const moderationConfigured = Boolean(env.MODERATION_API_USER && env.MODERATION_API_SECRET);
 export const verificationConfigured = Boolean(env.STRIPE_SECRET_KEY && env.STRIPE_IDENTITY_WEBHOOK_SECRET);
 export const turnConfigured = Boolean(env.TURN_URLS && env.TURN_SECRET);
