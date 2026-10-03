@@ -235,7 +235,7 @@ export async function registerWithGoogle(
 export async function loginWithApple(idToken: string, ctx: DeviceContext) {
   const identity = await verifyAppleIdToken(idToken);
 
-  let user = await prisma.user.findUnique({ where: { appleId: identity.appleId } });
+  let user = await prisma.user.findFirst({ where: { appleId: identity.appleId } });
   if (!user) {
     user = await prisma.user.findUnique({ where: { email: identity.email } });
     if (user) user = await prisma.user.update({ where: { id: user.id }, data: { appleId: identity.appleId } });

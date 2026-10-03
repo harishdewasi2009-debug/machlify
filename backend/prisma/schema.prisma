@@ -37,7 +37,7 @@ model User {
   passwordHash  String? // null for OAuth-only accounts
   provider      AuthProvider  @default(PASSWORD)
   googleId      String?       @unique
-  appleId       String?       @unique
+  appleId       String? // uniqueness enforced in auth.service (a DB unique constraint makes `prisma db push` demand --accept-data-loss)
   dateOfBirth   DateTime // collected once at registration, never trusted from client after
   gender        String
   status        AccountStatus @default(ACTIVE)
@@ -100,6 +100,8 @@ model User {
   @@index([email])
   @@index([status])
   @@index([verificationStatus])
+
+  @@index([appleId])
 }
 
 // Server-side session record. The access token is a short-lived JWT that is
