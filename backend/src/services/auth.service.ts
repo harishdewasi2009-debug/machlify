@@ -12,6 +12,7 @@ import {
 } from "../utils/tokens";
 import { sendAccountDeletionEmail, sendPasswordResetEmail, sendVerificationEmail } from "./email.service";
 import { verifyGoogleIdToken } from "./google.service";
+import { verifyAppleIdToken } from "./apple.service";
 import { cancelSubscription } from "./subscription.service";
 
 // Shared by both login paths. PENDING_DELETION gets its own error (and its
@@ -228,6 +229,54 @@ export async function registerWithGoogle(
     },
   });
 
+  return { user, ...(await createSessionForUser(user.id, ctx)) };
+}
+
+export async function loginWithApple(idToken: string, ctx: DeviceContext) {
+  const identity = await verifyAppleIdToken(idToken);
+
+  let user = await prisma.user.findUnique({ where: { appleId: identity.appleId } });
+  if (!user) {
+    user = await prisma.user.findUnique({ where: { email: identity.email } });
+    if (user) user = await prisma.user.update({ where: { id: user.id }, data: { appleId: identity.appleId } });
+  }
+  if (!user) {
+    throw Errors.validation("No account found for this Apple identity. Complete registration with date of birth first.");
+  }
+
+  assertLoginable(user);
+  if (!user.emailVerified && identity.emailVerified) {
+    user = await prisma.user.update({ where: { id: user.id }, data: { emailVerified: true } });
+  }
+  return { user, ...(await createSessionForUser(user.id, ctx)) };
+}
+
+export async function registerWithApple(
+  input: { idToken: string; name: string; dateOfBirth: Date; gender: string },
+  ctx: DeviceContext
+) {
+  const identity = await verifyAppleIdToken(input.idToken);
+
+  if (calculateAge(input.dateOfBirth) < env.MIN_AGE_YEARS) {
+    throw Errors.underMinimumAge(env.MIN_AGE_YEARS);
+  }
+  const existing = await prisma.user.findFirst({
+    where: { OR: [{ appleId: identity.appleId }, { email: identity.email }] },
+  });
+  if (existing) throw Errors.emailInUse();
+
+  const user = await prisma.user.create({
+    data: {
+      email: identity.email,
+      appleId: identity.appleId,
+      emailVerified: identity.emailVerified,
+      dateOfBirth: input.dateOfBirth,
+      gender: input.gender,
+      provider: "APPLE",
+      profile: { create: { displayName: input.name } },
+      preferences: { create: {} },
+    },
+  });
   return { user, ...(await createSessionForUser(user.id, ctx)) };
 }
 

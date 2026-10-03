@@ -28,6 +28,9 @@ import * as paymentController from "./controllers/payment.controller";
 import { asyncHandler } from "./utils/asyncHandler";
 
 export const app = express();
+// Behind Render's proxy: without this every visitor shares the proxy's IP, so the
+// login/register rate limits were being used up by ALL users together.
+app.set("trust proxy", 1);
 
 // Serve the frontend (index.html, admin.html, sw.js) from the same server, so
 // the website and the API share one address (no CORS/cookie problems).

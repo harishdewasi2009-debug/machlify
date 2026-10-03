@@ -146,7 +146,7 @@ describe("register/login rate limiting actually triggers across repeated request
     return { app: mod.app, prismaMock: freshPrismaMock };
   }
 
-  it("returns 429 RATE_LIMITED on exactly the 6th /api/auth/register call within the window (limit is 5)", async () => {
+  it("returns 429 RATE_LIMITED on exactly the 21st /api/auth/register call within the window (limit is 20)", async () => {
     const { app: freshRegisterApp, prismaMock: freshPrismaMock } = await freshApp();
     freshPrismaMock.user.findUnique.mockResolvedValue({ id: "existing_user" } as any);
 
@@ -159,32 +159,32 @@ describe("register/login rate limiting actually triggers across repeated request
     };
 
     const responses = [];
-    for (let i = 0; i < 6; i++) {
+    for (let i = 0; i < 21; i++) {
       responses.push(await request(freshRegisterApp).post("/api/auth/register").send(body));
     }
 
-    responses.slice(0, 5).forEach((res) => expect(res.status).not.toBe(429));
-    expect(responses[5].status).toBe(429);
-    expect(responses[5].body).toEqual({
+    responses.slice(0, 20).forEach((res) => expect(res.status).not.toBe(429));
+    expect(responses[20].status).toBe(429);
+    expect(responses[20].body).toEqual({
       success: false,
       error: { code: "RATE_LIMITED", message: "Too many registration attempts. Try again later." },
     });
   });
 
-  it("returns 429 RATE_LIMITED on exactly the 11th /api/auth/login call within the window (limit is 10)", async () => {
+  it("returns 429 RATE_LIMITED on exactly the 21st /api/auth/login call within the window (limit is 20)", async () => {
     const { app: freshLoginApp, prismaMock: freshPrismaMock } = await freshApp();
     freshPrismaMock.user.findUnique.mockResolvedValue(null); // every attempt is "invalid credentials"
 
     const responses = [];
-    for (let i = 0; i < 11; i++) {
+    for (let i = 0; i < 21; i++) {
       responses.push(
         await request(freshLoginApp).post("/api/auth/login").send({ email: "nobody@example.com", password: "whatever-1" })
       );
     }
 
-    responses.slice(0, 10).forEach((res) => expect(res.status).not.toBe(429));
-    expect(responses[10].status).toBe(429);
-    expect(responses[10].body.error.code).toBe("RATE_LIMITED");
+    responses.slice(0, 20).forEach((res) => expect(res.status).not.toBe(429));
+    expect(responses[20].status).toBe(429);
+    expect(responses[20].body.error.code).toBe("RATE_LIMITED");
   });
 });
 

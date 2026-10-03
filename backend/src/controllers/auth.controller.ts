@@ -1,3 +1,4 @@
+import { env } from "../config/env";
 import { cleanupUser as cleanupRandomChatUser } from "../services/randomChat/matchmaking.service";
 import { Request, Response } from "express";
 import { Errors } from "../utils/apiError";
@@ -7,6 +8,8 @@ import {
   deleteAccountSchema,
   googleLoginSchema,
   googleRegisterSchema,
+  appleLoginSchema,
+  appleRegisterSchema,
   loginSchema,
   registerSchema,
   requestPasswordResetSchema,
@@ -60,6 +63,28 @@ export async function googleRegister(req: Request, res: Response) {
   const { user, accessToken, refreshTokenRaw } = await authService.registerWithGoogle(input, deviceContext(req));
   setAuthCookies(res, accessToken, refreshTokenRaw);
   res.status(201).json({ success: true, data: { user: toPublicUser(user) } });
+}
+
+export async function appleLogin(req: Request, res: Response) {
+  const { idToken } = appleLoginSchema.parse(req.body);
+  const { user, accessToken, refreshTokenRaw } = await authService.loginWithApple(idToken, deviceContext(req));
+  setAuthCookies(res, accessToken, refreshTokenRaw);
+  res.json({ success: true, data: { user: toPublicUser(user) } });
+}
+
+export async function appleRegister(req: Request, res: Response) {
+  const input = appleRegisterSchema.parse(req.body);
+  const { user, accessToken, refreshTokenRaw } = await authService.registerWithApple(input, deviceContext(req));
+  setAuthCookies(res, accessToken, refreshTokenRaw);
+  res.status(201).json({ success: true, data: { user: toPublicUser(user) } });
+}
+
+// Public (non-secret) client IDs so the frontend never has to hardcode them.
+export async function publicConfig(_req: Request, res: Response) {
+  res.json({
+    success: true,
+    data: { googleClientId: env.GOOGLE_CLIENT_ID || null, appleClientId: env.APPLE_CLIENT_ID || null },
+  });
 }
 
 export async function refresh(req: Request, res: Response) {

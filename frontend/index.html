@@ -2031,6 +2031,9 @@
     restoreAccount: (token) => apiFetch('/api/auth/account/restore', { method:'POST', body: { token } }),
     googleLogin: (idToken) => apiFetch('/api/auth/google', { method:'POST', body: { idToken } }),
     googleRegister: (b) => apiFetch('/api/auth/google/register', { method:'POST', body: b }),
+    appleLogin: (idToken) => apiFetch('/api/auth/apple', { method:'POST', body: { idToken } }),
+    appleRegister: (b) => apiFetch('/api/auth/apple/register', { method:'POST', body: b }),
+    authConfig: () => apiFetch('/api/auth/config'),
     vapidKey: () => apiFetch('/api/devices/vapid-public-key'),
     registerPush: (subscription) => apiFetch('/api/devices/push-subscription', { method:'POST', body: { subscription, platform:'web' } }),
     unregisterPush: (endpoint) => apiFetch('/api/devices/push-subscription', { method:'DELETE', body: { endpoint } }),
@@ -2089,11 +2092,11 @@
       document.head.appendChild(el);
     });
   }
-  async function handleGoogleCredential(resp){
-    const modal = document.getElementById('googleModal'); if(modal) modal.remove();
-    const idToken = resp.credential;
+  let socialProvider = 'google';
+  async function handleSocialToken(provider, idToken){
+    socialProvider = provider;
     try{
-      const { user } = await Api.googleLogin(idToken);
+      const { user } = provider === 'apple' ? await Api.appleLogin(idToken) : await Api.googleLogin(idToken);
       currentUserId = user.id;
       finishOnboarding();
       await bootAuthenticatedApp();
@@ -2101,16 +2104,26 @@
       if(/No account found/i.test(err.message || '')){
         // Existing-account login failed because there's no account yet: continue as a
         // new Google sign-up, collecting what Google doesn't provide (DOB, gender, location…).
-        googleIdToken = idToken;
+        googleIdToken = idToken; // holds the Google or Apple ID token (see socialProvider)
         document.getElementById('fldEmail').style.display = 'none';
         document.getElementById('fldPassword').style.display = 'none';
         pfToast('Almost there — tell us a bit more to finish creating your account.');
         onbShow('onb-account');
-      } else pfToast(err.message || 'Google sign-in failed.');
+      } else pfToast(err.message || (provider === 'apple' ? 'Apple' : 'Google') + ' sign-in failed.');
     }
   }
+  function handleGoogleCredential(resp){
+    const modal = document.getElementById('googleModal'); if(modal) modal.remove();
+    return handleSocialToken('google', resp.credential);
+  }
+  let authConfigPromise = null;
+  function getAuthConfig(){
+    if(!authConfigPromise) authConfigPromise = Api.authConfig().catch(()=> ({}));
+    return authConfigPromise;
+  }
   document.getElementById('onbGoogle').addEventListener('click', async ()=>{
-    const clientId = window.MATCHIFY_GOOGLE_CLIENT_ID || '708129325781-3a0o43ahkief4d0cmmr3pq550vk9507e.apps.googleusercontent.com';
+    const cfg = await getAuthConfig();
+    const clientId = window.MATCHIFY_GOOGLE_CLIENT_ID || cfg.googleClientId || '708129325781-3a0o43ahkief4d0cmmr3pq550vk9507e.apps.googleusercontent.com';
     if(!clientId){ pfToast('Google sign-in isn\'t configured yet.'); return; }
     try{ await loadGsi(); }catch(err){ pfToast(err.message); return; }
     const wrap = document.createElement('div');
@@ -2121,7 +2134,29 @@
     window.google.accounts.id.initialize({ client_id: clientId, callback: handleGoogleCredential });
     window.google.accounts.id.renderButton(document.getElementById('googleBtnHost'), { theme:'filled_black', size:'large', shape:'pill' });
   });
-  document.getElementById('onbApple').addEventListener('click', ()=> pfToast('Apple sign-in isn\'t configured yet.'));
+  function loadAppleJs(){
+    return new Promise((resolve, reject)=>{
+      if(window.AppleID) return resolve();
+      const el = document.createElement('script');
+      el.src = 'https://appleid.cdn-apple.com/appleauth/static/jsapi/appleid/1/en_US/appleid.auth.js'; el.async = true;
+      el.onload = resolve; el.onerror = ()=> reject(new Error('Could not load Apple sign-in.'));
+      document.head.appendChild(el);
+    });
+  }
+  document.getElementById('onbApple').addEventListener('click', async ()=>{
+    const cfg = await getAuthConfig();
+    const clientId = window.MATCHIFY_APPLE_CLIENT_ID || cfg.appleClientId;
+    if(!clientId){ pfToast('Apple sign-in needs an Apple Services ID (APPLE_CLIENT_ID on the server).'); return; }
+    try{ await loadAppleJs(); }catch(err){ pfToast(err.message); return; }
+    try{
+      window.AppleID.auth.init({ clientId, scope:'name email', redirectURI: window.location.origin, usePopup:true });
+      const resp = await window.AppleID.auth.signIn();
+      await handleSocialToken('apple', resp.authorization.id_token);
+    }catch(err){
+      if(err && err.error === 'popup_closed_by_user') return;
+      pfToast((err && (err.message || err.error)) || 'Apple sign-in failed.');
+    }
+  });
 
   // -- Step 1: Create Account --
   let avatarIdx = -1;
@@ -2440,9 +2475,17 @@
       let user;
       if(googleIdToken){
         // Google already verified the email; the backend creates the account and session.
-        ({ user } = await Api.googleRegister({ idToken: googleIdToken, name, dateOfBirth, gender }));
+        ({ user } = socialProvider === 'apple'
+          ? await Api.appleRegister({ idToken: googleIdToken, name, dateOfBirth, gender })
+          : await Api.googleRegister({ idToken: googleIdToken, name, dateOfBirth, gender }));
       } else {
-        await Api.register({ name, email, password, dateOfBirth, gender });
+        try{
+          await Api.register({ name, email, password, dateOfBirth, gender });
+        }catch(regErr){
+          // An earlier attempt may have created the account before failing; if the
+          // password matches, just carry on by logging in.
+          if(regErr.code !== 'EMAIL_IN_USE') throw regErr;
+        }
         // Registration alone doesn't log you in (email verification gates
         // discoverability per the backend's own README) — but /login works
         // immediately, so log in right away for a smooth first-run experience.

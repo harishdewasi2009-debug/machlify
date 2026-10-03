@@ -1317,3 +1317,6 @@ So sign-up, photo upload and matching work without third-party accounts:
 | Sightengine | Photos are auto-approved (`ALLOW_UNMODERATED_PHOTOS`, default `true`). Set it to `false` in production once `MODERATION_API_*` is configured. |
 | Stripe Identity | `REQUIRE_IDENTITY_VERIFICATION` defaults to on only if Stripe is configured; otherwise users can discover and swipe. |
 | Google | Only `GOOGLE_CLIENT_ID` is needed (the secret is not used to verify ID tokens). Defaults to the Matchify client ID. |
+
+### Apple sign-in
+Needs an Apple Developer "Services ID": set `APPLE_CLIENT_ID` on the server, and in the Apple developer console add your site's domain and set the Return URL to your site origin (e.g. `https://machlify.onrender.com`). Without `APPLE_CLIENT_ID` the Apple button shows a message explaining this.

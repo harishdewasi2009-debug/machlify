@@ -20,6 +20,7 @@ datasource db {
 enum AuthProvider {
   PASSWORD
   GOOGLE
+  APPLE
 }
 
 enum AccountStatus {
@@ -36,6 +37,7 @@ model User {
   passwordHash  String? // null for OAuth-only accounts
   provider      AuthProvider  @default(PASSWORD)
   googleId      String?       @unique
+  appleId       String?       @unique
   dateOfBirth   DateTime // collected once at registration, never trusted from client after
   gender        String
   status        AccountStatus @default(ACTIVE)

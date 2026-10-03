@@ -5,7 +5,10 @@ const baseCookieOptions = {
   httpOnly: true,
   secure: isProduction, // HTTPS-only in production
   sameSite: "lax" as const,
-  domain: isProduction ? env.COOKIE_DOMAIN : undefined,
+  // Host-only cookie unless a real custom domain is configured (browsers reject
+  // Domain=onrender.com / localhost, which silently drops the login cookie).
+  domain:
+    isProduction && !/^(\.?onrender\.com|localhost)$/i.test(env.COOKIE_DOMAIN) ? env.COOKIE_DOMAIN : undefined,
 };
 
 export function setAuthCookies(res: Response, accessToken: string, refreshToken: string) {

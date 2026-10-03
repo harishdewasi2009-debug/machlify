@@ -66,7 +66,7 @@ export async function getUserDetail(userId: string) {
     prisma.block.count({ where: { blockedId: userId } }),
   ]);
 
-  const { passwordHash, googleId, ...safeUser } = user;
+  const { passwordHash, googleId, appleId, ...safeUser } = user as typeof user & { appleId?: string | null };
 
   return { ...safeUser, photoCount, reportsFiledCount, reportsReceivedCount, blockCount };
 }

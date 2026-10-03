@@ -13,6 +13,9 @@ authRouter.post("/login", loginRateLimiter, asyncHandler(authController.login));
 authRouter.post("/google", loginRateLimiter, asyncHandler(authController.googleLogin));
 
 authRouter.post("/google/register", registerRateLimiter, asyncHandler(authController.googleRegister));
+authRouter.post("/apple", loginRateLimiter, asyncHandler(authController.appleLogin));
+authRouter.post("/apple/register", registerRateLimiter, asyncHandler(authController.appleRegister));
+authRouter.get("/config", asyncHandler(authController.publicConfig));
 authRouter.post("/refresh", asyncHandler(authController.refresh));
 authRouter.post("/logout", requireAuth, asyncHandler(authController.logout));
 authRouter.post("/logout-all", requireAuth, asyncHandler(authController.logoutAllDevices));

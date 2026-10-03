@@ -14,6 +14,8 @@ const envSchema = z.object({
   REFRESH_TOKEN_TTL_DAYS: z.coerce.number().default(30),
 
   GOOGLE_CLIENT_ID: z.string().optional().default("708129325781-3a0o43ahkief4d0cmmr3pq550vk9507e.apps.googleusercontent.com"),
+  // Apple "Services ID" (Sign in with Apple, web). Required for Apple sign-in.
+  APPLE_CLIENT_ID: z.string().optional().default(""),
   GOOGLE_CLIENT_SECRET: z.string().optional().default(""),
 
   EMAIL_FROM: z.string().min(1),
@@ -147,6 +149,7 @@ export const isProduction = env.NODE_ENV === "production";
 
 export const emailConfigured = Boolean(env.SMTP_HOST && env.SMTP_USER && env.SMTP_PASSWORD);
 // Verifying a Google ID token only needs the client ID (the secret is for the code flow).
+export const appleOAuthConfigured = Boolean(env.APPLE_CLIENT_ID);
 export const googleOAuthConfigured = Boolean(env.GOOGLE_CLIENT_ID);
 export const s3Configured = Boolean(env.S3_ACCESS_KEY && env.S3_SECRET_KEY && env.S3_BUCKET);
 // Falls back to local disk storage when S3 is not configured, so uploads still work.

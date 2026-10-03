@@ -26,6 +26,14 @@ export const googleRegisterSchema = z.object({
   gender: z.string().min(1).max(40),
 });
 
+export const appleLoginSchema = z.object({ idToken: z.string().min(1) });
+export const appleRegisterSchema = z.object({
+  idToken: z.string().min(1),
+  name: z.string().trim().min(1).max(80),
+  dateOfBirth: z.coerce.date(),
+  gender: z.string().min(1).max(40),
+});
+
 export const requestPasswordResetSchema = z.object({
   email: z.string().trim().email().toLowerCase(),
 });

@@ -70,6 +70,7 @@ async function purgeUser(userId: string): Promise<void> {
         email: `deleted-${userId}@deleted.matchify.invalid`,
         passwordHash: null,
         googleId: null,
+        appleId: null,
         status: "DELETED",
         deletedAt: new Date(),
         scheduledDeletionAt: null,
