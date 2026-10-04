@@ -4,7 +4,9 @@ import { env, isProduction } from "../config/env";
 const baseCookieOptions = {
   httpOnly: true,
   secure: isProduction, // HTTPS-only in production
-  sameSite: "lax" as const,
+  // "none" is needed when the frontend is hosted on a different site than the API (cookies would
+  // otherwise be dropped on cross-site fetches, so login "succeeds" but the app stays logged out).
+  sameSite: (isProduction ? "none" : "lax") as "none" | "lax",
   // Host-only cookie unless a real custom domain is configured (browsers reject
   // Domain=onrender.com / localhost, which silently drops the login cookie).
   domain:

@@ -503,7 +503,7 @@
   .pf-save-bar{ position:sticky; bottom:0; padding:14px 0 4px; background:linear-gradient(to top, var(--bg) 60%, transparent); margin-top:4px; }
   .pf-save-btn{ width:100%; padding:15px; border-radius:16px; font-weight:800; font-size:14.5px; color:#fff; }
 
-  .pf-toast{ position:fixed; left:50%; bottom:26px; transform:translateX(-50%) translateY(20px); background:var(--card); border:1px solid var(--line); padding:12px 20px; border-radius:14px; font-size:13.5px; font-weight:700; opacity:0; pointer-events:none; transition:all .25s; z-index:80; display:flex; align-items:center; gap:8px; }
+  .pf-toast{ position:fixed; left:50%; bottom:26px; transform:translateX(-50%) translateY(20px); background:var(--card); border:1px solid var(--line); padding:12px 20px; border-radius:14px; font-size:13.5px; font-weight:700; opacity:0; pointer-events:none; transition:all .25s; z-index:400; display:flex; align-items:center; gap:8px; }
   .pf-toast.show{ opacity:1; transform:translateX(-50%) translateY(0); }
   .pf-toast svg{ width:16px; height:16px; color:var(--mint); }
 
@@ -594,7 +594,7 @@
   .notif-empty{ text-align:center; color:var(--text-faint); padding-top:60px; font-size:13.5px; }
 
   /* ---------- Generic confirm modal ---------- */
-  .confirm-modal{ position:fixed; inset:0; background:rgba(6,4,8,.7); backdrop-filter:blur(3px); z-index:90; display:none; align-items:center; justify-content:center; padding:20px; }
+  .confirm-modal{ position:fixed; inset:0; background:rgba(6,4,8,.7); backdrop-filter:blur(3px); z-index:350; display:none; align-items:center; justify-content:center; padding:20px; }
   .confirm-modal.open{ display:flex; }
   .confirm-box{ width:100%; max-width:340px; background:var(--bg-alt); border:1px solid var(--line); border-radius:20px; padding:24px; text-align:center; }
   .confirm-box .ico{ width:52px; height:52px; border-radius:50%; margin:0 auto 14px; display:flex; align-items:center; justify-content:center; font-size:24px; background:rgba(255,84,112,.12); color:#FF5470; }
@@ -881,7 +881,7 @@
           <div class="onb-err">Please enter your password</div>
         </div>
         <div class="onb-err" id="loginFormError" style="display:block;color:var(--flame1);font-size:12.5px;margin-top:4px;"></div>
-        <div style="margin-top:10px;font-size:13px;"><a href="#" id="forgotPasswordLink" style="color:var(--flame2);font-weight:700;">Forgot password?</a></div>
+        <div style="margin-top:10px;font-size:13px;display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;"><a href="#" id="forgotPasswordLink" style="color:var(--flame2);font-weight:700;">Forgot password?</a><a href="#" id="useDemoAccount" style="color:var(--flame2);font-weight:700;">Use demo account</a></div>
       </div>
       <div class="onb-footer">
         <button class="onb-next flame-bg" id="onbLoginSubmit">Log In</button>
@@ -1025,6 +1025,7 @@
       <div class="onb-sub">Show your best self — tap a tile or drag &amp; drop photos here</div>
       <div class="onb-body">
         <div class="onb-photo-grid" id="onbPhotoGrid"></div>
+        <div class="onb-err" id="onbPhotoError" style="display:none;margin:0 0 10px;font-size:12.5px;"></div>
         <div class="onb-photonote">Add at least 1 photo to continue · drag photos to reorder · the first one is your main photo</div>
       </div>
       <div class="onb-footer">
@@ -1958,7 +1959,13 @@
   // ---------------- API client ----------------
   // Point this at your deployed backend (e.g. https://matchify-backend.onrender.com).
   // Left as localhost for local dev against `npm run dev` in the backend repo.
-  const API_BASE = window.MATCHIFY_API_BASE || 'https://machlify.onrender.com';
+  const API_BASE = (function(){
+    if(window.MATCHIFY_API_BASE) return window.MATCHIFY_API_BASE;
+    const h = location.hostname;
+    // Served by the backend itself (Render or local dev): use same-origin, so cookies + CORS just work.
+    if(location.protocol.startsWith('http') && (h === 'localhost' || h === '127.0.0.1' || /\.onrender\.com$/.test(h))) return location.origin;
+    return 'https://machlify.onrender.com';
+  })();
 
   async function apiFetch(path, options = {}){
     let res;
@@ -1978,9 +1985,7 @@
       // (browsers block that "mixed content" silently). There's no status
       // code to inspect — this is the whole signal — so surface a message
       // that actually points at those causes instead of the raw error.
-      const err = new Error(
-        `Could not reach the server at ${API_BASE}${path}. This usually means the backend isn't running/reachable there, CORS is blocking it (the backend's APP_ORIGIN must exactly match this page's origin), or an https page is trying to call an http:// address.`
-      );
+      const err = new Error("Can't reach the server. If it was idle, wait about a minute and try again. If this keeps happening, open the app from the same web address as your backend (see DEMO_ACCOUNT.md).");
       err.isNetworkError = true;
       throw err;
     }
@@ -2049,6 +2054,16 @@
     verificationStatus: () => apiFetch('/api/verification/status'),
   };
   let currentUserId = null;
+  // Logging in can "succeed" while the browser silently refuses the session cookie
+  // (cross-site cookies are blocked on Safari / many Chrome setups). Catch that here
+  // instead of dropping the user into an app where nothing works.
+  async function ensureSession(){
+    try{ await Api.me(); }
+    catch(err){
+      if(err.isNetworkError) throw err;
+      throw new Error('Signed in, but your browser blocked the login cookie. Open the app from your backend\'s own web address (the same site that serves the API) and try again.');
+    }
+  }
 
   // ---------------- Onboarding ----------------
   const demoAvatars = [
@@ -2098,6 +2113,7 @@
     try{
       const { user } = provider === 'apple' ? await Api.appleLogin(idToken) : await Api.googleLogin(idToken);
       currentUserId = user.id;
+      await ensureSession();
       finishOnboarding();
       await bootAuthenticatedApp();
     }catch(err){
@@ -2119,16 +2135,18 @@
   let authConfigPromise = null;
   function getAuthConfig(){
     if(!authConfigPromise) authConfigPromise = Api.authConfig().catch(()=> ({}));
-    return authConfigPromise;
+    // Don't make the buttons wait on a slow/sleeping server: fall back after 3s.
+    return Promise.race([authConfigPromise, new Promise(r=> setTimeout(()=> r({}), 3000))]);
   }
   document.getElementById('onbGoogle').addEventListener('click', async ()=>{
+    pfToast('Opening Google…');
     const cfg = await getAuthConfig();
     const clientId = window.MATCHIFY_GOOGLE_CLIENT_ID || cfg.googleClientId || '708129325781-3a0o43ahkief4d0cmmr3pq550vk9507e.apps.googleusercontent.com';
     if(!clientId){ pfToast('Google sign-in isn\'t configured yet.'); return; }
     try{ await loadGsi(); }catch(err){ pfToast(err.message); return; }
     const wrap = document.createElement('div');
     wrap.id = 'googleModal'; wrap.className = 'confirm-modal open';
-    wrap.innerHTML = '<div class="confirm-box"><h3>Continue with Google</h3><div id="googleBtnHost" style="display:flex;justify-content:center;margin:16px 0;"></div><div class="row"><button class="confirm-cancel">Cancel</button></div></div>';
+    wrap.innerHTML = '<div class="confirm-box"><h3>Continue with Google</h3><div id="googleBtnHost" style="display:flex;justify-content:center;margin:16px 0;"></div><p style="font-size:11.5px;margin:0 0 14px;color:var(--text-dim);">If Google shows an error, add this site (' + location.origin + ') to Authorized JavaScript origins in Google Cloud Console.</p><div class="row"><button class="confirm-cancel">Cancel</button></div></div>';
     document.body.appendChild(wrap);
     wrap.querySelector('.confirm-cancel').addEventListener('click', ()=> wrap.remove());
     window.google.accounts.id.initialize({ client_id: clientId, callback: handleGoogleCredential });
@@ -2144,9 +2162,10 @@
     });
   }
   document.getElementById('onbApple').addEventListener('click', async ()=>{
+    pfToast('Opening Apple…');
     const cfg = await getAuthConfig();
     const clientId = window.MATCHIFY_APPLE_CLIENT_ID || cfg.appleClientId;
-    if(!clientId){ pfToast('Apple sign-in needs an Apple Services ID (APPLE_CLIENT_ID on the server).'); return; }
+    if(!clientId){ pfToast('Apple sign-in isn\'t set up yet. Please use Google or email to continue.'); return; }
     try{ await loadAppleJs(); }catch(err){ pfToast(err.message); return; }
     try{
       window.AppleID.auth.init({ clientId, scope:'name email', redirectURI: window.location.origin, usePopup:true });
@@ -2463,9 +2482,22 @@
   }
 
   let registering = false;
+  const skipBtn = document.getElementById('onbSkipPhotos');
+  function setRegisterBusy(busy){
+    clearTimeout(setRegisterBusy._t);
+    if(busy){
+      document.getElementById('onbPhotoError').style.display = 'none';
+      setRegisterBusy._t = setTimeout(()=>{ if(registering) finishBtn.textContent = 'Server is waking up, please wait…'; }, 5000);
+    }
+    finishBtn.textContent = busy ? 'Creating your profile…' : 'Start Matching';
+    finishBtn.style.pointerEvents = busy ? 'none' : '';
+    skipBtn.style.pointerEvents = busy ? 'none' : '';
+    skipBtn.style.opacity = busy ? '.5' : '';
+  }
   async function submitRegistration(){
     if(registering) return;
     registering = true;
+    setRegisterBusy(true);
     const name = document.getElementById('onbName').value.trim();
     const email = document.getElementById('onbEmail').value.trim();
     const password = document.getElementById('onbPassword').value;
@@ -2492,14 +2524,19 @@
         ({ user } = await Api.login({ email, password }));
       }
       currentUserId = user.id;
+      await ensureSession();
       await completeProfileSetup({ gender, interestedIn: document.getElementById('onbInterestedIn').value });
       await uploadSelectedOnboardingPhotos();
       finishOnboarding();
       await bootAuthenticatedApp();
     }catch(err){
-      pfToast(err.message || 'Could not create your account. Please try again.');
+      const box = document.getElementById('onbPhotoError');
+      box.textContent = err.message || 'Could not create your account. Please try again.';
+      box.style.display = 'block';
+      pfToast(box.textContent);
     }finally{
       registering = false;
+      setRegisterBusy(false);
     }
   }
   document.getElementById('onbSkipPhotos').addEventListener('click', submitRegistration);
@@ -2517,6 +2554,7 @@
     try{
       const { user } = await Api.login({ email, password });
       currentUserId = user.id;
+      await ensureSession();
       finishOnboarding();
       await bootAuthenticatedApp();
     }catch(err){
@@ -2526,6 +2564,13 @@
     }
   }
   document.getElementById('onbLoginSubmit').addEventListener('click', submitLogin);
+  document.getElementById('useDemoAccount').addEventListener('click', e=>{
+    e.preventDefault();
+    document.getElementById('loginEmail').value = 'demo@matchify.app';
+    document.getElementById('loginPassword').value = 'Demo@12345';
+    submitLogin();
+  });
+  ['loginEmail','loginPassword'].forEach(id=> document.getElementById(id).addEventListener('keydown', e=>{ if(e.key === 'Enter') submitLogin(); }));
 
   // ---------------- Data ----------------
   // Real user data, loaded from the backend after login — see loadDiscoveryFeed()
@@ -3827,7 +3872,7 @@
     document.getElementById('pfToastMsg').textContent = msg;
     t.classList.add('show');
     clearTimeout(t._h);
-    t._h = setTimeout(()=> t.classList.remove('show'), 2200);
+    t._h = setTimeout(()=> t.classList.remove('show'), 4500);
   }
 
   // -- Tabs --

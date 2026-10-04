@@ -4,7 +4,7 @@ import express from "express";
 import fs from "fs";
 import path from "path";
 import helmet from "helmet";
-import { env } from "./config/env";
+import { env, allowedOrigins } from "./config/env";
 import { errorHandler } from "./middleware/errorHandler.middleware";
 import { authRouter } from "./routes/auth.routes";
 import { photoRouter } from "./routes/photo.routes";
@@ -46,9 +46,13 @@ if (frontendDir) {
 app.use(helmet({ crossOriginResourcePolicy: { policy: "cross-origin" } }));
 // Local photo storage fallback (used when S3 is not configured). Only profile photos are exposed.
 app.use("/uploads/users", express.static(path.join(path.resolve(env.UPLOAD_DIR), "users"), { maxAge: "7d" }));
+// Requests with no Origin header (same-origin page loads, curl) are always allowed.
 app.use(
   cors({
-    origin: env.APP_ORIGIN,
+    origin(origin, cb) {
+      if (!origin || allowedOrigins.includes(origin)) return cb(null, true);
+      return cb(null, false);
+    },
     credentials: true, // required so the frontend's cookies (accessToken/refreshToken) are sent
   })
 );

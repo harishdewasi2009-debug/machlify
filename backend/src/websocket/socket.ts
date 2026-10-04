@@ -1,7 +1,7 @@
 import type { Server as HttpServer } from "node:http";
 import * as cookie from "cookie";
 import { Server as SocketIOServer, Socket } from "socket.io";
-import { env } from "../config/env";
+import { env, allowedOrigins } from "../config/env";
 import { prisma } from "../config/prisma";
 import { verifyAccessToken } from "../utils/tokens";
 import * as chatService from "../services/chat.service";
@@ -173,7 +173,7 @@ async function endActiveCallOnDisconnect(userId: string) {
 
 export function initSocket(httpServer: HttpServer): SocketIOServer {
   io = new SocketIOServer(httpServer, {
-    cors: { origin: env.APP_ORIGIN, credentials: true },
+    cors: { origin: allowedOrigins, credentials: true },
   });
 
   io.use(async (socket: AuthedSocket, next) => {

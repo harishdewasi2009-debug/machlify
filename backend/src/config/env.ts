@@ -6,6 +6,8 @@ const envSchema = z.object({
   PORT: z.coerce.number().default(4000),
   DATABASE_URL: z.string().min(1, "DATABASE_URL is required"),
   APP_ORIGIN: z.string().url(),
+  // Optional extra browser origins allowed by CORS/Socket.io, comma-separated (e.g. a separate frontend host).
+  EXTRA_ORIGINS: z.string().optional().default(""),
   COOKIE_DOMAIN: z.string().min(1),
 
   JWT_ACCESS_SECRET: z.string().min(16, "JWT_ACCESS_SECRET must be set to a real secret"),
@@ -146,6 +148,9 @@ export const env = {
 };
 
 export const isProduction = env.NODE_ENV === "production";
+export const allowedOrigins = [env.APP_ORIGIN, ...env.EXTRA_ORIGINS.split(",")]
+  .map((o) => o.trim().replace(/\/$/, ""))
+  .filter(Boolean);
 
 export const emailConfigured = Boolean(env.SMTP_HOST && env.SMTP_USER && env.SMTP_PASSWORD);
 // Verifying a Google ID token only needs the client ID (the secret is for the code flow).
