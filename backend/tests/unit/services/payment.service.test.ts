@@ -81,8 +81,8 @@ describe("verifyCheckout", () => {
     expect(prismaMock.payment.update).not.toHaveBeenCalled();
   });
 
-  it("rejects re-verifying a payment already in a terminal non-PAID state", async () => {
-    prismaMock.payment.findFirst.mockResolvedValue({ id: "payment_1", status: "FAILED" } as any);
+  it("rejects re-verifying a payment already in a terminal non-PAID state (refunded)", async () => {
+    prismaMock.payment.findFirst.mockResolvedValue({ id: "payment_1", status: "REFUNDED" } as any);
     await expect(
       verifyCheckout("user_1", { orderId: "order_1", paymentId: "pay_1", signature: "x" })
     ).rejects.toMatchObject({ code: "PAYMENT_ALREADY_PROCESSED" });
@@ -105,13 +105,26 @@ describe("verifyCheckout", () => {
 
   it("activates the subscription on a correctly-signed payment", async () => {
     prismaMock.payment.findFirst.mockResolvedValue({ id: "payment_1", status: "CREATED" } as any);
-    prismaMock.payment.update.mockResolvedValue({ id: "payment_1", status: "PAID" } as any);
+    prismaMock.payment.updateMany.mockResolvedValue({ count: 1 } as any);
     const signature = sign("order_1", "pay_1", RAZORPAY_SECRET);
 
     const result = await verifyCheckout("user_1", { orderId: "order_1", paymentId: "pay_1", signature });
 
     expect(result).toEqual({ status: "PAID", alreadyProcessed: false });
-    expect(subscriptionService.activateFromPayment).toHaveBeenCalledWith({ id: "payment_1", status: "PAID" });
+    expect(subscriptionService.activateFromPayment).toHaveBeenCalledWith(
+      expect.objectContaining({ id: "payment_1", status: "PAID", paymentId: "pay_1" })
+    );
+  });
+
+  it("does not activate twice when the webhook claimed the payment first (atomic claim lost)", async () => {
+    prismaMock.payment.findFirst.mockResolvedValue({ id: "payment_1", status: "CREATED" } as any);
+    prismaMock.payment.updateMany.mockResolvedValue({ count: 0 } as any);
+    const signature = sign("order_1", "pay_1", RAZORPAY_SECRET);
+
+    const result = await verifyCheckout("user_1", { orderId: "order_1", paymentId: "pay_1", signature });
+
+    expect(result).toEqual({ status: "PAID", alreadyProcessed: true });
+    expect(subscriptionService.activateFromPayment).not.toHaveBeenCalled();
   });
 });
 
@@ -122,7 +135,7 @@ describe("handleWebhookEvent — idempotency and event handling", () => {
 
   it("skips processing entirely on an exact-body redelivery (already handled)", async () => {
     const body = eventBody({ event: "payment.captured" });
-    prismaMock.$transaction.mockResolvedValue(false as any); // duplicate found
+    prismaMock.paymentWebhookEvent.create.mockRejectedValue({ code: "P2002" }); // duplicate found
 
     await handleWebhookEvent(body, {
       event: "payment.captured",
@@ -133,9 +146,9 @@ describe("handleWebhookEvent — idempotency and event handling", () => {
   });
 
   it("activates the subscription on a new payment.captured event, unless /verify already did", async () => {
-    prismaMock.$transaction.mockResolvedValue(true as any); // new event
+    prismaMock.paymentWebhookEvent.create.mockResolvedValue({} as any); // new event
     prismaMock.payment.findFirst.mockResolvedValue({ id: "payment_1", status: "CREATED" } as any);
-    prismaMock.payment.update.mockResolvedValue({ id: "payment_1", status: "PAID" } as any);
+    prismaMock.payment.updateMany.mockResolvedValue({ count: 1 } as any);
 
     await handleWebhookEvent(eventBody({ event: "payment.captured" }), {
       event: "payment.captured",
@@ -146,7 +159,7 @@ describe("handleWebhookEvent — idempotency and event handling", () => {
   });
 
   it("is a no-op backstop if /verify already marked the payment PAID", async () => {
-    prismaMock.$transaction.mockResolvedValue(true as any);
+    prismaMock.paymentWebhookEvent.create.mockResolvedValue({} as any);
     prismaMock.payment.findFirst.mockResolvedValue({ id: "payment_1", status: "PAID" } as any);
 
     await handleWebhookEvent(eventBody({ event: "payment.captured" }), {
@@ -154,12 +167,28 @@ describe("handleWebhookEvent — idempotency and event handling", () => {
       payload: { payment: { entity: { id: "pay_1", order_id: "order_1", status: "captured" } } },
     });
 
-    expect(prismaMock.payment.update).not.toHaveBeenCalled();
+    expect(prismaMock.payment.updateMany).not.toHaveBeenCalled();
     expect(subscriptionService.activateFromPayment).not.toHaveBeenCalled();
   });
 
+  it("releases the dedupe record when processing fails so Razorpay's retry is not dropped", async () => {
+    prismaMock.paymentWebhookEvent.create.mockResolvedValue({} as any);
+    prismaMock.payment.findFirst.mockResolvedValue({ id: "payment_1", status: "CREATED" } as any);
+    prismaMock.payment.updateMany.mockResolvedValue({ count: 1 } as any);
+    prismaMock.paymentWebhookEvent.deleteMany.mockResolvedValue({ count: 1 } as any);
+    vi.mocked(subscriptionService.activateFromPayment).mockRejectedValueOnce(new Error("db down"));
+
+    await expect(
+      handleWebhookEvent(eventBody({ event: "payment.captured" }), {
+        event: "payment.captured",
+        payload: { payment: { entity: { id: "pay_1", order_id: "order_1", status: "captured" } } },
+      })
+    ).rejects.toThrow("db down");
+    expect(prismaMock.paymentWebhookEvent.deleteMany).toHaveBeenCalled();
+  });
+
   it("revokes entitlement on refund.processed", async () => {
-    prismaMock.$transaction.mockResolvedValue(true as any);
+    prismaMock.paymentWebhookEvent.create.mockResolvedValue({} as any);
     prismaMock.payment.findFirst.mockResolvedValue({ id: "payment_1", status: "PAID" } as any);
     prismaMock.payment.update.mockResolvedValue({ id: "payment_1", status: "REFUNDED" } as any);
 
@@ -175,7 +204,7 @@ describe("handleWebhookEvent — idempotency and event handling", () => {
   });
 
   it("silently ignores an event type it has no handler for", async () => {
-    prismaMock.$transaction.mockResolvedValue(true as any);
+    prismaMock.paymentWebhookEvent.create.mockResolvedValue({} as any);
 
     await expect(
       handleWebhookEvent(eventBody({ event: "order.paid" }), { event: "order.paid", payload: {} })

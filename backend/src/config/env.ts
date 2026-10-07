@@ -68,6 +68,18 @@ const envSchema = z.object({
   // become VERIFIED and discovery/swiping would be permanently locked).
   REQUIRE_IDENTITY_VERIFICATION: z.string().optional().default(""),
 
+  // Automatic face verification (AWS Rekognition - https://aws.amazon.com/rekognition).
+  // No SDK: requests are SigV4-signed with Node's crypto (same no-vendor-SDK style as the
+  // Razorpay/Stripe integrations). The IAM user only needs rekognition:DetectFaces and
+  // rekognition:CompareFaces. When unset, selfies fall back to human moderator review.
+  REKOGNITION_ACCESS_KEY_ID: z.string().optional().default(""),
+  REKOGNITION_SECRET_ACCESS_KEY: z.string().optional().default(""),
+  REKOGNITION_REGION: z.string().optional().default("us-east-1"),
+  // Similarity (0-100) between the live selfie and a profile photo needed to auto-verify.
+  FACE_MATCH_THRESHOLD: z.coerce.number().min(50).max(100).default(90),
+  // Between this and FACE_MATCH_THRESHOLD the selfie goes to a human moderator instead of failing.
+  FACE_REVIEW_THRESHOLD: z.coerce.number().min(30).max(100).default(75),
+
   // Voice/video calling. STUN alone is not reliable in production (it fails
   // for a large fraction of real users behind symmetric NAT/corporate
   // firewalls) — a TURN relay is required. This targets any coturn-compatible
@@ -160,6 +172,7 @@ export const s3Configured = Boolean(env.S3_ACCESS_KEY && env.S3_SECRET_KEY && en
 // Falls back to local disk storage when S3 is not configured, so uploads still work.
 export const storageConfigured = true;
 export const moderationConfigured = Boolean(env.MODERATION_API_USER && env.MODERATION_API_SECRET);
+export const faceVerificationConfigured = Boolean(env.REKOGNITION_ACCESS_KEY_ID && env.REKOGNITION_SECRET_ACCESS_KEY);
 export const verificationConfigured = Boolean(env.STRIPE_SECRET_KEY && env.STRIPE_IDENTITY_WEBHOOK_SECRET);
 export const turnConfigured = Boolean(env.TURN_URLS && env.TURN_SECRET);
 export const pushConfigured = Boolean(env.VAPID_PUBLIC_KEY && env.VAPID_PRIVATE_KEY && env.VAPID_SUBJECT);
@@ -172,4 +185,30 @@ if (isProduction && env.ADMIN_JWT_SECRET && env.ADMIN_JWT_SECRET === env.JWT_ACC
   // an admin token (or vice versa) if the JWT payload shapes ever overlap —
   // fail loudly rather than silently accept the risk.
   throw new Error("ADMIN_JWT_SECRET must differ from JWT_ACCESS_SECRET.");
+}
+
+// Production safety checks. These only warn (a hard failure here could take a live site down on
+// the next deploy), but each line points at a real weakness worth fixing.
+if (isProduction) {
+  const warn = (msg: string) => console.warn(`[security] ${msg}`);
+  if (env.JWT_ACCESS_SECRET.length < 32 || env.JWT_REFRESH_SECRET.length < 32) {
+    warn("JWT secrets should be at least 32 random characters (use `openssl rand -hex 32`).");
+  }
+  if (!env.ADMIN_JWT_SECRET) {
+    warn("ADMIN_JWT_SECRET is not set: admin login is disabled (503) until you set it (`openssl rand -hex 32`).");
+  } else if (env.ADMIN_JWT_SECRET === env.JWT_REFRESH_SECRET) {
+    warn("ADMIN_JWT_SECRET must not equal JWT_REFRESH_SECRET.");
+  }
+  if (env.ALLOW_UNMODERATED_PHOTOS) {
+    warn("ALLOW_UNMODERATED_PHOTOS is true: uploaded photos are accepted without automated moderation. Configure Sightengine and set it to false.");
+  }
+  if (!s3Configured) {
+    warn("S3/R2 is not configured: uploads are stored on local disk and served from /uploads (ephemeral on most hosts).");
+  }
+  if (!/^https:\/\//i.test(env.APP_ORIGIN)) {
+    warn("APP_ORIGIN is not https: Secure cookies will not be sent by browsers.");
+  }
+  if (process.env.SEED_DEMO !== "false") {
+    warn("Demo seeding is on (SEED_DEMO!=false). The demo user has a public password; set SEED_DEMO=false for a real launch.");
+  }
 }

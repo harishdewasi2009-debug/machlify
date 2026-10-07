@@ -20,6 +20,28 @@ export async function submitSelfie(req: Request, res: Response) {
   res.status(201).json({ success: true, data: result });
 }
 
+export async function faceChallenge(req: Request, res: Response) {
+  if (!req.userId) throw Errors.unauthorized();
+  res.json({ success: true, data: verificationService.issueFaceChallenge(req.userId) });
+}
+
+export async function submitFace(req: Request, res: Response) {
+  if (!req.userId) throw Errors.unauthorized();
+  const files = req.files as Record<string, Express.Multer.File[]> | undefined;
+  const neutral = files?.neutral?.[0];
+  const challenge = files?.challenge?.[0];
+  const token = typeof req.body?.challengeToken === "string" ? req.body.challengeToken : "";
+  if (!neutral || !challenge || !token) {
+    throw Errors.validation("Send 'neutral' and 'challenge' photos plus 'challengeToken' as multipart/form-data.");
+  }
+  const result = await verificationService.submitFaceVerification(req.userId, {
+    neutral: neutral.buffer,
+    challenge: challenge.buffer,
+    challengeToken: token,
+  });
+  res.status(201).json({ success: true, data: result });
+}
+
 export async function status(req: Request, res: Response) {
   if (!req.userId) throw Errors.unauthorized();
   const result = await verificationService.getStatus(req.userId);

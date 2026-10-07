@@ -37,6 +37,7 @@ export async function createOrder(params: {
       receipt: params.receipt,
       notes: params.notes ?? {},
     }),
+    signal: AbortSignal.timeout(15_000), // never hang the request if Razorpay is slow
   });
 
   const data = (await response.json()) as RazorpayOrder & { error?: { description?: string } };
@@ -59,6 +60,7 @@ export async function fetchPayment(paymentId: string): Promise<{ id: string; ord
 
   const response = await fetch(`https://api.razorpay.com/v1/payments/${paymentId}`, {
     headers: { Authorization: authHeader() },
+    signal: AbortSignal.timeout(15_000),
   });
 
   const data = (await response.json()) as { id: string; order_id: string; status: string; error?: { description?: string } };

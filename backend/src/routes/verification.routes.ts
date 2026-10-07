@@ -1,9 +1,10 @@
 import { Router } from "express";
 import multer from "multer";
-import { uploadSinglePhoto } from "../middleware/upload.middleware";
+import { uploadFaceFrames, uploadSinglePhoto } from "../middleware/upload.middleware";
 import { ApiError } from "../utils/apiError";
 import * as verificationController from "../controllers/verification.controller";
 import { requireAuth } from "../middleware/auth.middleware";
+import { uploadRateLimiter } from "../middleware/rateLimit.middleware";
 import { asyncHandler } from "../utils/asyncHandler";
 
 export const verificationRouter = Router();
@@ -23,4 +24,18 @@ function handleUpload(req: Parameters<typeof uploadSinglePhoto>[0], res: Paramet
 
 // Selfie-based verification, reviewed by a human moderator (no third-party
 // provider needed). Stripe Identity via /start remains available too.
-verificationRouter.post("/photo", handleUpload, asyncHandler(verificationController.submitSelfie));
+verificationRouter.post("/photo", uploadRateLimiter, handleUpload, asyncHandler(verificationController.submitSelfie));
+
+// Real face verification (live camera frames, checked automatically).
+verificationRouter.get("/challenge", asyncHandler(verificationController.faceChallenge));
+verificationRouter.post(
+  "/face",
+  uploadRateLimiter,
+  (req, res, next) =>
+    uploadFaceFrames(req, res, (err: unknown) => {
+      if (err instanceof multer.MulterError) return next(new ApiError(400, "UPLOAD_ERROR", err.message));
+      if (err) return next(err);
+      next();
+    }),
+  asyncHandler(verificationController.submitFace)
+);

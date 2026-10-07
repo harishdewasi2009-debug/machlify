@@ -82,6 +82,8 @@ function buildPushContent(type: string, payload: Record<string, unknown>): PushC
   switch (type) {
     case "MATCH":
       return { title: "New match!", body: "You've got a new match on Matchify.", data: payload };
+    case "LIKE":
+      return { title: "Someone likes you", body: "You have a new like on Matchify.", data: payload };
     case "MESSAGE":
       return { title: "New message", body: "You have a new message waiting.", data: payload };
     case "CALL":

@@ -6,5 +6,6 @@ export const listMessagesQuerySchema = z.object({
 
 export const sendMessageSchema = z.object({
   content: z.string().min(1).max(2000),
-  type: z.enum(["TEXT", "IMAGE"]).optional().default("TEXT"),
+  // IMAGE/AUDIO are created only by the media upload endpoint, never by a client-supplied string.
+  type: z.enum(["TEXT", "LOCATION"]).optional().default("TEXT"),
 });

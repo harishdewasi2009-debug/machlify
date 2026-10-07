@@ -1,5 +1,6 @@
+import { randomBytes } from "node:crypto";
 import { prisma } from "../config/prisma";
-import { env, emailConfigured } from "../config/env";
+import { env } from "../config/env";
 import { Errors } from "../utils/apiError";
 import { calculateAge } from "../utils/age";
 import { hashPassword, isPasswordStrongEnough, verifyPassword } from "../utils/password";
@@ -10,10 +11,11 @@ import {
   hashOpaqueToken,
   signAccessToken,
 } from "../utils/tokens";
-import { sendAccountDeletionEmail, sendPasswordResetEmail, sendVerificationEmail } from "./email.service";
+import { sendAccountDeletionEmail, sendPasswordResetEmail } from "./email.service";
 import { verifyGoogleIdToken } from "./google.service";
 import { verifyAppleIdToken } from "./apple.service";
 import { cancelSubscription } from "./subscription.service";
+import { recomputeDiscoverability } from "./profile.service";
 
 // Shared by both login paths. PENDING_DELETION gets its own error (and its
 // own recovery path — the emailed restore link, not logging back in) rather
@@ -21,6 +23,20 @@ import { cancelSubscription } from "./subscription.service";
 function assertLoginable(user: { status: string }) {
   if (user.status === "PENDING_DELETION") throw Errors.accountPendingDeletion();
   if (user.status !== "ACTIVE") throw Errors.accountSuspended();
+}
+
+// A real bcrypt hash (of a random value, created once on first use) used only to equalize
+// timing for unknown emails — a made-up/invalid hash would make bcrypt return instantly.
+let dummyPasswordHash: Promise<string> | null = null;
+function getDummyPasswordHash(): Promise<string> {
+  if (!dummyPasswordHash) dummyPasswordHash = hashPassword(randomBytes(24).toString("hex"));
+  return dummyPasswordHash;
+}
+
+// Two simultaneous sign-ups with the same email both pass the "exists?" check; the DB unique
+// constraint then rejects one of them. Turn that into the normal 409 instead of a 500.
+function isUniqueViolation(err: unknown): boolean {
+  return typeof err === "object" && err !== null && (err as { code?: string }).code === "P2002";
 }
 
 interface RegisterInput {
@@ -51,36 +67,25 @@ export async function registerUser(input: RegisterInput) {
 
   const passwordHash = await hashPassword(input.password);
 
-  const user = await prisma.user.create({
+  // No email-verification step: the profile is usable as soon as sign-up
+  // finishes, so the account is created already marked as verified.
+  const user = await prisma.user
+    .create({
     data: {
       email: input.email,
       passwordHash,
+      emailVerified: true,
       dateOfBirth: input.dateOfBirth,
       gender: input.gender,
       provider: "PASSWORD",
       profile: { create: { displayName: input.name } },
       preferences: { create: {} },
     },
-  });
-
-  const { raw, hash } = generateOpaqueToken();
-  await prisma.emailVerificationToken.create({
-    data: { userId: user.id, tokenHash: hash, expiresAt: addDays(new Date(), 1) },
-  });
-
-  // A failed verification email must not fail sign-up (the account already exists).
-  // With no SMTP configured there is no way to verify, so mark the email verified
-  // instead of leaving the user stuck.
-  if (!emailConfigured) {
-    console.warn("[auth] SMTP not configured: marking email as verified for", user.email);
-    await prisma.user.update({ where: { id: user.id }, data: { emailVerified: true } });
-  } else {
-    try {
-      await sendVerificationEmail(user.email, raw, env.APP_ORIGIN);
-    } catch (err) {
-      console.error("[auth] Could not send verification email:", err);
-    }
-  }
+    })
+    .catch((err: unknown) => {
+      if (isUniqueViolation(err)) throw Errors.emailInUse();
+      throw err;
+    });
 
   return { id: user.id, email: user.email };
 }
@@ -135,6 +140,9 @@ export async function loginWithPassword(email: string, password: string, ctx: De
   // Constant-shape error whether the account exists or the password is
   // wrong, so login can't be used to enumerate registered emails.
   if (!user || !user.passwordHash) {
+    // Burn the same bcrypt time a real check would, so response time doesn't reveal
+    // whether the email is registered.
+    await verifyPassword(password, await getDummyPasswordHash());
     throw Errors.invalidCredentials();
   }
 
@@ -172,6 +180,9 @@ export async function loginWithGoogle(idToken: string, ctx: DeviceContext) {
   if (!user) {
     // If an account already exists with this email via password signup,
     // link the Google identity to it rather than creating a duplicate user.
+    // Only when Google says the email is verified — otherwise anyone could create a Google
+    // identity claiming someone else's address and take over their account.
+    if (!identity.emailVerified) throw Errors.invalidToken();
     user = await prisma.user.findUnique({ where: { email: identity.email } });
     if (user) {
       user = await prisma.user.update({ where: { id: user.id }, data: { googleId: identity.googleId } });
@@ -206,6 +217,7 @@ export async function registerWithGoogle(
   ctx: DeviceContext
 ) {
   const identity = await verifyGoogleIdToken(input.idToken);
+  if (!identity.emailVerified) throw Errors.invalidToken();
 
   if (calculateAge(input.dateOfBirth) < env.MIN_AGE_YEARS) {
     throw Errors.underMinimumAge(env.MIN_AGE_YEARS);
@@ -220,13 +232,16 @@ export async function registerWithGoogle(
     data: {
       email: identity.email,
       googleId: identity.googleId,
-      emailVerified: identity.emailVerified,
+      emailVerified: true,
       dateOfBirth: input.dateOfBirth,
       gender: input.gender,
       provider: "GOOGLE",
       profile: { create: { displayName: input.name } },
       preferences: { create: {} },
     },
+  }).catch((err: unknown) => {
+    if (isUniqueViolation(err)) throw Errors.emailInUse();
+    throw err;
   });
 
   return { user, ...(await createSessionForUser(user.id, ctx)) };
@@ -237,6 +252,7 @@ export async function loginWithApple(idToken: string, ctx: DeviceContext) {
 
   let user = await prisma.user.findFirst({ where: { appleId: identity.appleId } });
   if (!user) {
+    if (!identity.emailVerified) throw Errors.invalidToken();
     user = await prisma.user.findUnique({ where: { email: identity.email } });
     if (user) user = await prisma.user.update({ where: { id: user.id }, data: { appleId: identity.appleId } });
   }
@@ -256,6 +272,7 @@ export async function registerWithApple(
   ctx: DeviceContext
 ) {
   const identity = await verifyAppleIdToken(input.idToken);
+  if (!identity.emailVerified) throw Errors.invalidToken();
 
   if (calculateAge(input.dateOfBirth) < env.MIN_AGE_YEARS) {
     throw Errors.underMinimumAge(env.MIN_AGE_YEARS);
@@ -269,13 +286,16 @@ export async function registerWithApple(
     data: {
       email: identity.email,
       appleId: identity.appleId,
-      emailVerified: identity.emailVerified,
+      emailVerified: true,
       dateOfBirth: input.dateOfBirth,
       gender: input.gender,
       provider: "APPLE",
       profile: { create: { displayName: input.name } },
       preferences: { create: {} },
     },
+  }).catch((err: unknown) => {
+    if (isUniqueViolation(err)) throw Errors.emailInUse();
+    throw err;
   });
   return { user, ...(await createSessionForUser(user.id, ctx)) };
 }
@@ -284,9 +304,21 @@ export async function refreshSession(rawRefreshToken: string, ctx: DeviceContext
   const tokenHash = hashOpaqueToken(rawRefreshToken);
   const record = await prisma.refreshToken.findUnique({ where: { tokenHash } });
 
-  if (!record || record.revoked || record.expiresAt < new Date()) {
+  if (!record) throw Errors.unauthorized();
+
+  // A refresh token is single-use. Seeing an already-rotated token again means two parties
+  // hold the same cookie (a copy was stolen), so kill the whole session: the thief and the
+  // real user both have to log in again, but the thief no longer has access.
+  if (record.revoked) {
+    try {
+      await prisma.session.update({ where: { id: record.sessionId }, data: { revoked: true } });
+      await prisma.refreshToken.updateMany({ where: { sessionId: record.sessionId }, data: { revoked: true } });
+    } catch {
+      /* best effort — the request is rejected either way */
+    }
     throw Errors.unauthorized();
   }
+  if (record.expiresAt < new Date()) throw Errors.unauthorized();
 
   // Rotate: revoke the used token and issue a new one. If a revoked token is
   // ever presented again, that's a signal of token theft/replay.
@@ -468,12 +500,20 @@ export async function restoreAccount(rawToken: string): Promise<void> {
     }),
   ]);
 
+  // Deletion hid the profile from discovery; bring it back if it still qualifies.
+  await recomputeDiscoverability(user.id).catch(() => undefined);
+
   // Restoring the account doesn't restore the old (revoked) sessions or the
   // matches that were closed — the user logs in fresh and reconnects with
   // matches organically, same as any other returning user.
 }
 
-export async function changePassword(userId: string, currentPassword: string, newPassword: string) {
+export async function changePassword(
+  userId: string,
+  currentPassword: string,
+  newPassword: string,
+  keepSessionId?: string
+) {
   const user = await prisma.user.findUnique({ where: { id: userId } });
   if (!user || !user.passwordHash) throw Errors.notFound("User");
 
@@ -486,4 +526,15 @@ export async function changePassword(userId: string, currentPassword: string, ne
 
   const passwordHash = await hashPassword(newPassword);
   await prisma.user.update({ where: { id: userId }, data: { passwordHash } });
+
+  // A password change should lock out anyone who already had access (a stolen session), while
+  // keeping the person who just changed it signed in on this device.
+  await prisma.session.updateMany({
+    where: { userId, revoked: false, ...(keepSessionId ? { id: { not: keepSessionId } } : {}) },
+    data: { revoked: true },
+  });
+  await prisma.refreshToken.updateMany({
+    where: { userId, revoked: false, ...(keepSessionId ? { sessionId: { not: keepSessionId } } : {}) },
+    data: { revoked: true },
+  });
 }

@@ -4,6 +4,9 @@ import { Server as SocketIOServer, Socket } from "socket.io";
 import { env, allowedOrigins } from "../config/env";
 import { prisma } from "../config/prisma";
 import { verifyAccessToken } from "../utils/tokens";
+import { isTrustedOrigin } from "../middleware/security.middleware";
+import { ZodError } from "zod";
+import { ApiError } from "../utils/apiError";
 import * as chatService from "../services/chat.service";
 import * as callService from "../services/call.service";
 import { registerRandomChatHandlers, onRandomChatConnect, onRandomChatDisconnect } from "./randomChat.socket";
@@ -103,12 +106,28 @@ function markOffline(userId: string, socketId: string) {
 // without this, a rejected message (e.g. sent to a conversation the user
 // isn't a member of, or to someone who blocked them) would silently vanish
 // on the client with no error shown.
+// Plain Error messages thrown deliberately by the handlers in this file / randomChat.socket.
+const SAFE_SOCKET_MESSAGES = new Set([
+  "You're sending messages too fast.",
+  "Too many call attempts. Try again in a minute.",
+  "callId is required.",
+  "conversationId is required.",
+]);
+
 export async function withAck<T>(ack: ((response: { success: boolean; data?: T; error?: string }) => void) | undefined, fn: () => Promise<T>) {
   try {
     const data = await fn();
     ack?.({ success: true, data });
   } catch (err) {
-    const message = err instanceof Error ? err.message : "Something went wrong.";
+    // Only our own validation/permission errors are safe to show; anything else (DB driver errors,
+    // stack-bearing exceptions) is logged and replaced with a generic message.
+    if (err instanceof ZodError) {
+      ack?.({ success: false, error: err.errors[0]?.message ?? "Invalid request." });
+      return;
+    }
+    const safe = err instanceof ApiError || (err instanceof Error && /^[A-Z_]+$/.test(err.message)) || (err instanceof Error && SAFE_SOCKET_MESSAGES.has(err.message));
+    if (!safe) console.error("[socket] handler error:", err);
+    const message = safe && err instanceof Error ? err.message : "Something went wrong.";
     ack?.({ success: false, error: message });
   }
 }
@@ -174,6 +193,15 @@ async function endActiveCallOnDisconnect(userId: string) {
 export function initSocket(httpServer: HttpServer): SocketIOServer {
   io = new SocketIOServer(httpServer, {
     cors: { origin: allowedOrigins, credentials: true },
+    // The auth cookie is SameSite=None in production, so a malicious website could open a
+    // WebSocket to us and the browser would attach the victim's cookie (cross-site WebSocket
+    // hijacking). CORS does not apply to WebSocket handshakes, so check Origin ourselves.
+    allowRequest: (req, callback) => {
+      const origin = req.headers.origin;
+      if (!origin) return callback(null, true); // non-browser client: no ambient cookies
+      callback(null, isTrustedOrigin(origin, req.headers.host));
+    },
+    maxHttpBufferSize: 100_000, // 100 KB per event is plenty for chat/signaling payloads
   });
 
   io.use(async (socket: AuthedSocket, next) => {
@@ -192,6 +220,20 @@ export function initSocket(httpServer: HttpServer): SocketIOServer {
       return;
     }
 
+    // Per-connection flood control (sliding window). Returns false when the limit is exceeded.
+    const hits = new Map<string, number[]>();
+    const allow = (key: string, max: number, windowMs: number) => {
+      const now = Date.now();
+      const recent = (hits.get(key) ?? []).filter((t) => now - t < windowMs);
+      if (recent.length >= max) {
+        hits.set(key, recent);
+        return false;
+      }
+      recent.push(now);
+      hits.set(key, recent);
+      return true;
+    };
+
     void joinOwnConversationRooms(socket, userId);
     const cameOnline = markOnline(userId, socket.id);
     if (cameOnline) {
@@ -202,6 +244,7 @@ export function initSocket(httpServer: HttpServer): SocketIOServer {
 
     socket.on("message:send", (payload, ack) =>
       withAck(ack, async () => {
+        if (!allow("message:send", 20, 10_000)) throw new Error("You're sending messages too fast.");
         const message = await chatService.sendMessage(
           userId,
           payload?.conversationId,
@@ -225,7 +268,8 @@ export function initSocket(httpServer: HttpServer): SocketIOServer {
     );
 
     socket.on("typing:start", (payload) => {
-      if (!payload?.conversationId) return;
+      if (!payload?.conversationId || !allow("typing", 30, 10_000)) return;
+      if (!socket.rooms.has(roomForConversation(payload.conversationId))) return; // only your own conversations
       socket.to(roomForConversation(payload.conversationId)).emit("typing:start", {
         conversationId: payload.conversationId,
         userId,
@@ -234,6 +278,7 @@ export function initSocket(httpServer: HttpServer): SocketIOServer {
 
     socket.on("typing:stop", (payload) => {
       if (!payload?.conversationId) return;
+      if (!socket.rooms.has(roomForConversation(payload.conversationId))) return;
       socket.to(roomForConversation(payload.conversationId)).emit("typing:stop", {
         conversationId: payload.conversationId,
         userId,
@@ -250,6 +295,7 @@ export function initSocket(httpServer: HttpServer): SocketIOServer {
 
     socket.on("call:invite", (payload, ack) =>
       withAck(ack, async () => {
+        if (!allow("call:invite", 6, 60_000)) throw new Error("Too many call attempts. Try again in a minute.");
         const type = payload?.type === "VIDEO" ? "VIDEO" : "VOICE";
         const call = await callService.initiateCall(userId, payload?.calleeId, type);
 
@@ -296,7 +342,11 @@ export function initSocket(httpServer: HttpServer): SocketIOServer {
         clearRingTimer(call.id);
         const participants = activeCallParticipants.get(call.id);
         activeCallParticipants.delete(call.id);
-        const other = participants ? otherParticipant(participants, userId) : null;
+        const other = participants
+          ? otherParticipant(participants, userId)
+          : call.callerId === userId
+            ? call.calleeId
+            : call.callerId;
         if (other) io!.to(roomForUser(other)).emit("call:end", { callId: call.id, reason: "hangup" });
         return call;
       })

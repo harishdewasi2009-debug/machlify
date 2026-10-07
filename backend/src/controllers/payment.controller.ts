@@ -44,7 +44,12 @@ export async function webhook(req: Request, res: Response) {
     env.RAZORPAY_WEBHOOK_SECRET
   );
 
-  const event = JSON.parse(rawBody.toString("utf8"));
+  let event;
+  try {
+    event = JSON.parse(rawBody.toString("utf8"));
+  } catch {
+    throw Errors.validation("Webhook body is not valid JSON.");
+  }
   await paymentService.handleWebhookEvent(rawBody, event);
 
   res.json({ success: true });

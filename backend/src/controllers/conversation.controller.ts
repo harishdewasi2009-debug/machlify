@@ -30,6 +30,14 @@ export async function sendMessage(req: Request, res: Response) {
   res.status(201).json({ success: true, data: { message } });
 }
 
+export async function sendMedia(req: Request, res: Response) {
+  if (!req.userId) throw Errors.unauthorized();
+  if (!req.file) throw Errors.validation("No file was uploaded.");
+  const message = await chatService.sendMediaMessage(req.userId, req.params.id, req.file);
+  emitToConversation(message.conversationId, "message:new", message);
+  res.status(201).json({ success: true, data: { message } });
+}
+
 export async function markRead(req: Request, res: Response) {
   if (!req.userId) throw Errors.unauthorized();
   await chatService.markConversationRead(req.userId, req.params.id);

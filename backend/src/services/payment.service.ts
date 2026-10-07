@@ -14,7 +14,8 @@ export async function startCheckout(userId: string, plan: string) {
   const order = await razorpay.createOrder({
     amount: planConfig.amount,
     currency: planConfig.currency,
-    receipt: `user_${userId}_${Date.now()}`,
+    // Razorpay rejects receipts longer than 40 characters (a cuid userId alone is 25). The full userId is in notes.
+    receipt: `r_${userId.slice(-12)}_${Date.now()}`,
     notes: { userId, plan },
   });
 
@@ -59,7 +60,9 @@ export async function verifyCheckout(
     // idempotent success, not an error, so a retried frontend call is safe.
     return { status: "PAID", alreadyProcessed: true };
   }
-  if (payment.status !== "CREATED") {
+  // FAILED is allowed through: Razorpay lets a customer retry the same order after a failed attempt,
+  // and the signature check below is the actual proof of payment. REFUNDED stays rejected.
+  if (payment.status !== "CREATED" && payment.status !== "FAILED") {
     throw Errors.paymentAlreadyProcessed();
   }
 
@@ -75,12 +78,22 @@ export async function verifyCheckout(
     throw Errors.paymentVerificationFailed();
   }
 
-  const updated = await prisma.payment.update({
-    where: { id: payment.id },
+  // Atomic claim: /verify and the webhook can arrive at the same moment. Only the one that flips the
+  // row to PAID may activate the subscription, otherwise the user gets the term twice.
+  const claimed = await prisma.payment.updateMany({
+    where: { id: payment.id, status: { in: ["CREATED", "FAILED"] } },
     data: { status: "PAID", paymentId: params.paymentId, signature: params.signature },
   });
+  if (claimed.count === 0) return { status: "PAID", alreadyProcessed: true };
 
-  await subscriptionService.activateFromPayment(updated);
+  try {
+    await subscriptionService.activateFromPayment({ ...payment, status: "PAID", paymentId: params.paymentId });
+  } catch (err) {
+    // Money was taken but the subscription wasn't granted: put the payment back so a retry
+    // (or the webhook) can activate it instead of being skipped as "already PAID".
+    await prisma.payment.updateMany({ where: { id: payment.id, status: "PAID" }, data: { status: "CREATED" } });
+    throw err;
+  }
 
   return { status: "PAID", alreadyProcessed: false };
 }
@@ -117,34 +130,51 @@ export async function handleWebhookEvent(rawBody: Buffer, event: RazorpayWebhook
   // the dedupe key.
   const eventHash = crypto.createHash("sha256").update(rawBody).digest("hex");
 
-  const isNew = await prisma.$transaction(async (tx) => {
-    const duplicate = await tx.paymentWebhookEvent.findUnique({ where: { eventHash } });
-    if (duplicate) return false;
-    await tx.paymentWebhookEvent.create({ data: { eventHash } });
-    return true;
-  });
+  // Record the delivery first (unique key => concurrent duplicates lose the race cleanly) ...
+  try {
+    await prisma.paymentWebhookEvent.create({ data: { eventHash } });
+  } catch (err) {
+    if ((err as { code?: string }).code === "P2002") return; // exact redelivery — already handled
+    throw err;
+  }
 
-  if (!isNew) return; // exact redelivery — already handled, no-op
+  // ... but if processing fails, forget it again. Otherwise Razorpay's retry would be dropped as a
+  // "duplicate" and a paid order would never be activated.
+  try {
+    await processWebhookEvent(event);
+  } catch (err) {
+    await prisma.paymentWebhookEvent.deleteMany({ where: { eventHash } }).catch(() => undefined);
+    throw err;
+  }
+}
 
+async function processWebhookEvent(event: RazorpayWebhookEvent): Promise<void> {
   if (event.event === "payment.captured" && event.payload.payment) {
     const entity = event.payload.payment.entity;
     const payment = await prisma.payment.findFirst({ where: { orderId: entity.order_id } });
     if (!payment) return; // order this backend never created (different mode/key) — ignore
-    if (payment.status === "PAID") return; // /verify already handled it — this is just the backstop
+    if (payment.status === "PAID" || payment.status === "REFUNDED") return; // already handled
 
-    const updated = await prisma.payment.update({
-      where: { id: payment.id },
+    // Same atomic claim as /verify so the two can't both activate.
+    const claimed = await prisma.payment.updateMany({
+      where: { id: payment.id, status: { in: ["CREATED", "FAILED"] } },
       data: { status: "PAID", paymentId: entity.id },
     });
-    await subscriptionService.activateFromPayment(updated);
+    if (claimed.count === 0) return;
+    try {
+      await subscriptionService.activateFromPayment({ ...payment, status: "PAID", paymentId: entity.id });
+    } catch (err) {
+      await prisma.payment.updateMany({ where: { id: payment.id, status: "PAID" }, data: { status: "CREATED" } });
+      throw err;
+    }
     return;
   }
 
   if (event.event === "payment.failed" && event.payload.payment) {
     const entity = event.payload.payment.entity;
     const payment = await prisma.payment.findFirst({ where: { orderId: entity.order_id } });
-    if (!payment || payment.status === "PAID") return;
-    await prisma.payment.update({ where: { id: payment.id }, data: { status: "FAILED" } });
+    if (!payment || payment.status !== "CREATED") return;
+    await prisma.payment.updateMany({ where: { id: payment.id, status: "CREATED" }, data: { status: "FAILED" } });
     return;
   }
 

@@ -176,12 +176,12 @@ describe("admin auth, end-to-end, with ADMIN_JWT_SECRET configured", () => {
     );
   });
 
-  it("adminLoginRateLimiter actually triggers (limit is 5 per window, tighter than end-user login)", async () => {
+  it("adminLoginRateLimiter actually triggers (10 FAILED attempts per window, tighter than end-user login; successful logins don't count)", async () => {
     const { app, prismaMock } = await freshAppWithAdminSecret(REAL_ADMIN_SECRET);
     prismaMock.adminUser.findUnique.mockResolvedValue(null); // every attempt "doesn't exist"
 
     let last;
-    for (let i = 0; i < 6; i++) {
+    for (let i = 0; i < 11; i++) {
       last = await request(app)
         .post("/api/admin/auth/login")
         .send({ email: "nobody@matchify.example", password: "whatever-1" });

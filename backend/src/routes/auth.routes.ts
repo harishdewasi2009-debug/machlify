@@ -1,13 +1,18 @@
 import { Router } from "express";
 import * as authController from "../controllers/auth.controller";
 import { requireAuth } from "../middleware/auth.middleware";
-import { loginRateLimiter, passwordResetRateLimiter, registerRateLimiter } from "../middleware/rateLimit.middleware";
+import {
+  loginRateLimiter,
+  passwordResetRateLimiter,
+  registerRateLimiter,
+  tokenEndpointRateLimiter,
+} from "../middleware/rateLimit.middleware";
 import { asyncHandler } from "../utils/asyncHandler";
 
 export const authRouter = Router();
 
 authRouter.post("/register", registerRateLimiter, asyncHandler(authController.register));
-authRouter.post("/verify-email", asyncHandler(authController.verifyEmail));
+authRouter.post("/verify-email", tokenEndpointRateLimiter, asyncHandler(authController.verifyEmail));
 
 authRouter.post("/login", loginRateLimiter, asyncHandler(authController.login));
 authRouter.post("/google", loginRateLimiter, asyncHandler(authController.googleLogin));
@@ -16,7 +21,7 @@ authRouter.post("/google/register", registerRateLimiter, asyncHandler(authContro
 authRouter.post("/apple", loginRateLimiter, asyncHandler(authController.appleLogin));
 authRouter.post("/apple/register", registerRateLimiter, asyncHandler(authController.appleRegister));
 authRouter.get("/config", asyncHandler(authController.publicConfig));
-authRouter.post("/refresh", asyncHandler(authController.refresh));
+authRouter.post("/refresh", tokenEndpointRateLimiter, asyncHandler(authController.refresh));
 authRouter.post("/logout", requireAuth, asyncHandler(authController.logout));
 authRouter.post("/logout-all", requireAuth, asyncHandler(authController.logoutAllDevices));
 

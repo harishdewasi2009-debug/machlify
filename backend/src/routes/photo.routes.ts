@@ -3,6 +3,7 @@ import multer from "multer";
 import * as photoController from "../controllers/photo.controller";
 import { requireAuth } from "../middleware/auth.middleware";
 import { uploadSinglePhoto } from "../middleware/upload.middleware";
+import { uploadRateLimiter } from "../middleware/rateLimit.middleware";
 import { ApiError } from "../utils/apiError";
 import { asyncHandler } from "../utils/asyncHandler";
 
@@ -23,7 +24,7 @@ function handleUpload(req: Parameters<typeof uploadSinglePhoto>[0], res: Paramet
   });
 }
 
-photoRouter.post("/", handleUpload, asyncHandler(photoController.upload));
+photoRouter.post("/", uploadRateLimiter, handleUpload, asyncHandler(photoController.upload));
 photoRouter.get("/", asyncHandler(photoController.list));
 photoRouter.patch("/reorder", asyncHandler(photoController.reorder));
 photoRouter.patch("/:id/primary", asyncHandler(photoController.setPrimary));

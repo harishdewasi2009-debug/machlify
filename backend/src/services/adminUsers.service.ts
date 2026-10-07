@@ -1,5 +1,6 @@
 import { cleanupUser as cleanupRandomChatUser } from "./randomChat/matchmaking.service";
 import { Prisma } from "@prisma/client";
+import { recomputeDiscoverability } from "./profile.service";
 import { prisma } from "../config/prisma";
 import { Errors } from "../utils/apiError";
 import { logAdminAction } from "./adminAudit.service";
@@ -82,6 +83,7 @@ export async function suspendUser(adminUserId: string, userId: string, reason: s
     // existing access tokens/sockets working until they naturally expire
     // isn't a real suspension.
     prisma.session.updateMany({ where: { userId }, data: { revoked: true } }),
+    prisma.profile.updateMany({ where: { userId }, data: { isDiscoverable: false } }),
   ]);
   await cleanupRandomChatUser(userId, "ACCOUNT").catch(() => undefined);
 
@@ -92,6 +94,11 @@ export async function restoreUser(adminUserId: string, userId: string) {
   const user = await prisma.user.findUnique({ where: { id: userId } });
   if (!user) throw Errors.notFound("User");
 
+  // An anonymized/purged account has nothing left to restore.
+  if (user.status === "DELETED") throw Errors.validation("This account has been permanently deleted and cannot be restored.");
+
   await prisma.user.update({ where: { id: userId }, data: { status: "ACTIVE" } });
+  // The profile was hidden while suspended; bring it back to discovery if it still qualifies.
+  await recomputeDiscoverability(userId).catch(() => undefined);
   await logAdminAction(adminUserId, "RESTORE_USER", "User", userId);
 }

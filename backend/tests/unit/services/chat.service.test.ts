@@ -34,6 +34,24 @@ describe("sendMessage — validation", () => {
     });
   });
 
+  it("rejects client-supplied IMAGE/AUDIO messages (they may only be created by the upload endpoint)", async () => {
+    await expect(sendMessage("user_1", "conv_1", "javascript:alert(1)", "IMAGE")).rejects.toMatchObject({
+      code: "VALIDATION_ERROR",
+    });
+    await expect(sendMessage("user_1", "conv_1", "https://evil.example/x.mp3", "AUDIO")).rejects.toMatchObject({
+      code: "VALIDATION_ERROR",
+    });
+  });
+
+  it("rejects a malformed LOCATION message", async () => {
+    await expect(sendMessage("user_1", "conv_1", "geo:999,999", "LOCATION")).rejects.toMatchObject({
+      code: "VALIDATION_ERROR",
+    });
+    await expect(sendMessage("user_1", "conv_1", "<script>", "LOCATION")).rejects.toMatchObject({
+      code: "VALIDATION_ERROR",
+    });
+  });
+
   it("rejects content over 2000 characters", async () => {
     await expect(sendMessage("user_1", "conv_1", "a".repeat(2001))).rejects.toMatchObject({
       code: "VALIDATION_ERROR",

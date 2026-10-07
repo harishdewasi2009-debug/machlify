@@ -10,10 +10,10 @@ export interface AdminAccessTokenPayload {
 
 export function signAdminAccessToken(payload: AdminAccessTokenPayload): string {
   if (!env.ADMIN_JWT_SECRET) throw Errors.configurationMissing("Admin authentication");
-  return jwt.sign(payload, env.ADMIN_JWT_SECRET, { expiresIn: `${env.ADMIN_SESSION_TTL_HOURS}h` });
+  return jwt.sign(payload, env.ADMIN_JWT_SECRET, { algorithm: "HS256", expiresIn: `${env.ADMIN_SESSION_TTL_HOURS}h` });
 }
 
 export function verifyAdminAccessToken(token: string): AdminAccessTokenPayload {
   if (!env.ADMIN_JWT_SECRET) throw Errors.configurationMissing("Admin authentication");
-  return jwt.verify(token, env.ADMIN_JWT_SECRET) as AdminAccessTokenPayload;
+  return jwt.verify(token, env.ADMIN_JWT_SECRET, { algorithms: ["HS256"] }) as AdminAccessTokenPayload;
 }

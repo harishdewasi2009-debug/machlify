@@ -31,7 +31,7 @@ function toPublicUser(user: { id: string; email: string; emailVerified: boolean 
 export async function register(req: Request, res: Response) {
   const input = registerSchema.parse(req.body);
   const user = await authService.registerUser(input);
-  res.status(201).json({ success: true, data: { user, message: "Check your email to verify your account." } });
+  res.status(201).json({ success: true, data: { user, message: "Account created. You can sign in now." } });
 }
 
 export async function verifyEmail(req: Request, res: Response) {
@@ -131,7 +131,7 @@ export async function resetPassword(req: Request, res: Response) {
 export async function changePassword(req: Request, res: Response) {
   if (!req.userId) throw Errors.unauthorized();
   const { currentPassword, newPassword } = changePasswordSchema.parse(req.body);
-  await authService.changePassword(req.userId, currentPassword, newPassword);
+  await authService.changePassword(req.userId, currentPassword, newPassword, req.sessionId);
   res.json({ success: true, data: { changed: true } });
 }
 

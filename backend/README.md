@@ -1320,3 +1320,52 @@ So sign-up, photo upload and matching work without third-party accounts:
 
 ### Apple sign-in
 Needs an Apple Developer "Services ID": set `APPLE_CLIENT_ID` on the server, and in the Apple developer console add your site's domain and set the Return URL to your site origin (e.g. `https://machlify.onrender.com`). Without `APPLE_CLIENT_ID` the Apple button shows a message explaining this.
+
+## Face verification (blue badge)
+
+Profile > Verify opens the live camera (no gallery uploads). The user takes a neutral photo
+and a second photo doing a random step (smile or turn head). `GET /api/verification/challenge`
+issues the step; `POST /api/verification/face` (multipart: `neutral`, `challenge`,
+`challengeToken`) checks both frames with AWS Rekognition, confirms the step happened and that
+both frames are the same person, then compares the selfie with the user's own approved profile
+photos. Similarity >= `FACE_MATCH_THRESHOLD` (90) -> `VERIFIED` automatically; between
+`FACE_REVIEW_THRESHOLD` (75) and 90 -> `MANUAL_REVIEW`; below -> `REJECTED`. Max 5 attempts/hour.
+
+Env: `REKOGNITION_ACCESS_KEY_ID`, `REKOGNITION_SECRET_ACCESS_KEY`, `REKOGNITION_REGION`.
+Without them the same screen sends the selfie to the existing human review queue instead.
+The face-matching path could not be run end to end without AWS credentials; test it once with real keys.
+
+## Matching worldwide
+
+Distance/"miles away" has been removed: discovery no longer uses location, so people from every
+country can match. A profile needs at least one photo (chosen at the top of Create Account).
+
+
+---
+
+## Security hardening (v8)
+
+What changed and why. Everything below is on by default; nothing needs configuring except the env vars noted.
+
+| Area | Change |
+| --- | --- |
+| CSRF | Auth cookies are `SameSite=None` in production, so browsers attach them to requests started by other sites. `csrfOriginGuard` (`middleware/security.middleware.ts`) now rejects any POST/PUT/PATCH/DELETE under `/api` whose `Origin`/`Referer` is not `APP_ORIGIN`, `EXTRA_ORIGINS` or the server's own host (403 `CSRF_BLOCKED`). Requests with no Origin/Referer (curl, webhooks) are unaffected. |
+| WebSockets | Socket.io handshakes now check `Origin` (CORS does not cover WebSockets), cap event size at 100 KB, and rate-limit `message:send`, `typing:*` and `call:invite` per connection. |
+| Rate limits | New: global `/api` cap (`API_RATE_LIMIT_PER_MIN`, default 240/IP/min), refresh/verify-email, uploads, chat send, reports. Admin login now counts only **failed** attempts (limit 10/15 min); before, every successful login also burned the budget. |
+| Sessions | Refresh-token reuse now revokes the whole session (the old code only commented that it was a theft signal). Changing your password signs out every *other* device. JWTs pin `HS256`. |
+| Account takeover | Google/Apple sign-in links to / creates an account only when the provider reports the email as verified. |
+| Login timing | Unknown emails now cost the same bcrypt time as wrong passwords. |
+| Passwords | Common breached passwords and trivial repeats are rejected; max length 128. |
+| Chat | Clients can only create `TEXT`/`LOCATION` messages. `IMAGE`/`AUDIO` come only from the upload endpoint, and uploads are checked by magic bytes, not just the claimed Content-Type. (Previously a user could send `type: IMAGE` with any string and it was rendered as a link in the other person's app.) |
+| Frontend | Chat media URLs must be http(s); admin `esc()` now escapes quotes (it is used inside attributes). |
+| Headers | Static pages get `frame-ancestors none` / `X-Frame-Options: DENY`, `nosniff`, referrer and permissions policies, HSTS in production. `/uploads/*` is served with `sandbox`. Malformed JSON now returns 400 instead of 500. |
+| Demo admin | See `DEMO_ACCOUNT.md`. Production no longer seeds an ADMIN with the published password. |
+| Startup | In production the server logs `[security]` warnings for weak/missing secrets, `ALLOW_UNMODERATED_PHOTOS=true`, local-disk uploads, non-https `APP_ORIGIN`, and demo seeding left on. |
+
+### Still recommended (not done here)
+- Set `SEED_DEMO=false`, `ALLOW_UNMODERATED_PHOTOS=false` (with Sightengine keys) and use S3/R2 for a real launch.
+- Admin MFA (TOTP) and an IP allow-list for `/api/admin` — the biggest remaining admin risk.
+- Back `express-rate-limit` with Redis if you run more than one instance.
+- The frontend never calls `/api/auth/refresh`, so sessions end when the 15-minute access token expires; add a refresh-on-401 step in `apiFetch`.
+- `presence:online` is broadcast to every connected socket; scope it to matches.
+- Chat media in local-disk mode is public-by-URL (unguessable UUID, no auth); with S3 it uses signed URLs.

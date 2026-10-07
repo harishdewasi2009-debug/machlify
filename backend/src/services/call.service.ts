@@ -1,6 +1,7 @@
 import { prisma } from "../config/prisma";
 import { Errors } from "../utils/apiError";
 import { createNotification } from "./notification.service";
+import { env } from "../config/env";
 
 const CALL_HISTORY_PAGE_SIZE = 30;
 const ACTIVE_STATUSES = ["RINGING", "ACCEPTED"] as const;
@@ -24,7 +25,27 @@ async function assertActiveMatch(userId: string, otherUserId: string) {
 // produces a real "busy" signal instead of overlapping calls stacking up.
 // Exported so the socket layer can look up and terminate a user's in-progress
 // call when their last socket disconnects mid-call.
+// A RINGING call whose in-memory ring timer was lost (server restart/deploy) or an ACCEPTED call
+// whose hangup never arrived would otherwise block that user from ever calling again
+// ("You're already on a call"). Anything past these ceilings is closed out first.
+const MAX_CALL_HOURS = 4;
+async function expireStaleCalls(userId: string) {
+  const now = Date.now();
+  const ringCutoff = new Date(now - (env.CALL_RING_TIMEOUT_SECONDS + 15) * 1000);
+  const liveCutoff = new Date(now - MAX_CALL_HOURS * 60 * 60 * 1000);
+  const who = [{ callerId: userId }, { calleeId: userId }];
+  await prisma.call.updateMany({
+    where: { OR: who, status: "RINGING", createdAt: { lt: ringCutoff } },
+    data: { status: "MISSED", endedAt: new Date() },
+  });
+  await prisma.call.updateMany({
+    where: { OR: who, status: "ACCEPTED", createdAt: { lt: liveCutoff } },
+    data: { status: "FAILED", endedAt: new Date() },
+  });
+}
+
 export async function findActiveCallForUser(userId: string) {
+  await expireStaleCalls(userId);
   return prisma.call.findFirst({
     where: {
       status: { in: [...ACTIVE_STATUSES] },

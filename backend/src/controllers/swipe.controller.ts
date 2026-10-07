@@ -9,3 +9,9 @@ export async function create(req: Request, res: Response) {
   const result = await swipeService.recordSwipe(req.userId, targetUserId, liked);
   res.status(201).json({ success: true, data: result });
 }
+
+export async function likesYou(req: Request, res: Response) {
+  if (!req.userId) throw Errors.unauthorized();
+  const likes = await swipeService.listLikesYou(req.userId);
+  res.json({ success: true, data: { likes } });
+}

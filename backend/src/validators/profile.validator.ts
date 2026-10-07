@@ -17,7 +17,8 @@ export const updateLocationSchema = z.object({
 export const updatePreferencesSchema = z.object({
   minAge: z.number().int().min(18).max(99),
   maxAge: z.number().int().min(18).max(99),
-  maxDistanceKm: z.number().int().min(1).max(500),
+  // Distance is no longer used for matching; accepted (and ignored) for old clients.
+  maxDistanceKm: z.number().int().min(1).max(500).optional(),
   genders: z.array(z.string().trim().min(1).max(40)).min(1).max(10),
 }).refine((data) => data.minAge <= data.maxAge, {
   message: "minAge must be less than or equal to maxAge",

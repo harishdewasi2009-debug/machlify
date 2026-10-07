@@ -234,6 +234,13 @@
   .match-item .nm{ font-weight:700; font-size:14px; }
   .match-item .tm{ font-size:11px; color:var(--text-faint); flex:0 0 auto; }
   .match-item .sub{ font-size:12.5px; color:var(--text-dim); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .match-item .unread-pill{ min-width:19px; height:19px; padding:0 6px; border-radius:10px; background:var(--flame1); color:#fff; font-size:11px; font-weight:800; display:inline-flex; align-items:center; justify-content:center; flex:0 0 auto; }
+  .match-item .sub.unread{ color:var(--text); font-weight:700; }
+  .live-toast{ position:fixed; top:14px; left:50%; transform:translate(-50%,-140%); z-index:900; width:min(92vw,380px); display:flex; gap:12px; align-items:center; padding:12px 14px; border-radius:16px; background:var(--bg-alt); border:1px solid var(--line); box-shadow:0 10px 30px rgba(0,0,0,.35); cursor:pointer; transition:transform .35s ease; }
+  .live-toast.show{ transform:translate(-50%,0); }
+  .live-toast .lt-ico{ width:38px; height:38px; border-radius:50%; background:var(--card-2); display:flex; align-items:center; justify-content:center; font-size:18px; flex:0 0 auto; }
+  .live-toast .lt-t{ font-size:13.5px; font-weight:700; line-height:1.3; }
+  .live-toast .lt-s{ font-size:12px; color:var(--text-dim); margin-top:2px; }
   .match-item .sub.new{ color:var(--flame2); font-weight:600; }
 
   /* Chat column */
@@ -376,6 +383,25 @@
   .onb-splash-foot{ margin-top:auto; width:100%; display:flex; flex-direction:column; align-items:center; }
   .onb-or{ color:var(--text-faint); font-size:12px; font-weight:600; margin:16px 0; }
   .onb-social{ width:100%; max-width:320px; padding:14px; border-radius:16px; border:1px solid var(--line); background:var(--card); font-weight:700; font-size:13.5px; display:flex; align-items:center; justify-content:center; gap:10px; margin-bottom:10px; }
+  .onb-social.apple{ background:#fff; color:#000; border-color:#fff; }
+  .onb-social.apple svg{ flex:0 0 auto; }
+  .gsi-host{ width:100%; max-width:320px; min-height:44px; display:flex; justify-content:center; margin-bottom:10px; }
+  .gsi-host:empty{ display:none; }
+  .onb-or.line{ display:flex; align-items:center; gap:12px; width:100%; max-width:320px; margin:14px auto; }
+  .onb-or.line::before,.onb-or.line::after{ content:''; flex:1; height:1px; background:var(--line); }
+  .apple-sheet{ text-align:center; max-width:360px; }
+  .apple-sheet .apple-logo{ width:64px; height:64px; border-radius:18px; background:#000; color:#fff; display:flex; align-items:center; justify-content:center; margin:0 auto 14px; border:1px solid var(--line); }
+  .apple-sheet h3{ margin:0 0 6px; font-size:19px; font-weight:800; }
+  .apple-sheet .lead{ margin:0 0 16px; color:var(--text-dim); font-size:13.5px; line-height:1.5; }
+  .apple-points{ list-style:none; margin:0 0 18px; padding:0; text-align:left; }
+  .apple-points li{ display:flex; gap:12px; align-items:flex-start; padding:10px 12px; border-radius:12px; background:var(--card); border:1px solid var(--line); margin-bottom:8px; font-size:12.5px; color:var(--text-dim); line-height:1.4; }
+  .apple-points li b{ display:block; color:var(--text); font-size:13px; margin-bottom:1px; }
+  .apple-points .pi{ font-size:18px; line-height:1.2; }
+  .apple-go{ width:100%; padding:14px; border-radius:14px; background:#000; color:#fff; border:1px solid #444; font-weight:700; font-size:15px; display:flex; align-items:center; justify-content:center; gap:8px; margin-bottom:10px; }
+  body.light .apple-go{ border-color:#000; }
+  .apple-go[disabled]{ opacity:.6; pointer-events:none; }
+  .apple-note{ display:none; margin:0 0 12px; padding:10px 12px; border-radius:12px; background:rgba(255,194,75,.12); border:1px solid rgba(255,194,75,.35); color:var(--text); font-size:12.5px; line-height:1.45; text-align:left; }
+  .apple-note.show{ display:block; }
   .onb-login{ margin-top:22px; color:var(--text-dim); font-size:13.5px; }
   .onb-login a{ color:var(--flame2); font-weight:700; }
 
@@ -440,6 +466,17 @@
   .onb-footer{ margin-top:auto; padding-top:16px; flex:0 0 auto; }
   .onb-next{ width:100%; padding:15.5px; border-radius:16px; font-weight:800; font-size:14.5px; color:#fff; transition:opacity .2s; }
   .onb-next[disabled]{ opacity:.45; pointer-events:none; }
+  .face-modal{ position:fixed; inset:0; z-index:1200; background:rgba(6,4,8,.92); display:none; align-items:center; justify-content:center; padding:16px; }
+  .face-modal.open{ display:flex; }
+  .face-box{ width:100%; max-width:380px; text-align:center; color:var(--text,#fff); }
+  .face-video-wrap{ position:relative; width:100%; aspect-ratio:3/4; border-radius:24px; overflow:hidden; background:#000; border:1px solid var(--line,#2a2230); }
+  .face-video-wrap video{ width:100%; height:100%; object-fit:cover; transform:scaleX(-1); }
+  .face-oval{ position:absolute; inset:12% 18%; border:3px dashed rgba(255,255,255,.7); border-radius:50%; pointer-events:none; }
+  .face-step{ margin-top:14px; font-size:12px; font-weight:800; letter-spacing:.06em; text-transform:uppercase; color:var(--text-dim,#aaa); }
+  .face-msg{ margin:6px 0 16px; font-size:16px; font-weight:700; min-height:44px; }
+  .face-box button{ width:100%; padding:14px; border-radius:16px; font-weight:800; font-size:14.5px; color:#fff; }
+  .face-box button:disabled{ opacity:.6; }
+  .face-box .face-cancel{ margin-top:8px; background:none; color:var(--text-dim,#aaa); font-weight:700; }
   .onb-skip{ width:100%; text-align:center; padding:13px 0 2px; color:var(--text-dim); font-weight:700; font-size:13px; }
 
   /* ---------- Profile view ---------- */
@@ -850,12 +887,13 @@
       <div class="onb-splash-foot">
         <button class="onb-cta-primary flame-bg" id="onbGetStarted" style="width:100%;max-width:320px;padding:16px;border-radius:16px;font-weight:800;font-size:15px;color:#fff;">Get Started</button>
         <div class="onb-or">or continue with</div>
+        <div class="gsi-host" id="gsiSplash"></div>
         <button class="onb-social" id="onbGoogle">
           <svg width="16" height="16" viewBox="0 0 24 24"><path fill="#4285F4" d="M23.5 12.3c0-.8-.1-1.6-.2-2.3H12v4.5h6.5c-.3 1.5-1.1 2.7-2.4 3.6v3h3.9c2.3-2.1 3.5-5.2 3.5-8.8z"/><path fill="#34A853" d="M12 24c3.2 0 5.9-1.1 7.9-2.9l-3.9-3c-1.1.7-2.4 1.1-4 1.1-3.1 0-5.7-2.1-6.6-4.9H1.4v3.1C3.4 21.3 7.4 24 12 24z"/><path fill="#FBBC05" d="M5.4 14.3c-.2-.7-.4-1.5-.4-2.3s.1-1.6.4-2.3V6.6H1.4C.5 8.3 0 10.1 0 12s.5 3.7 1.4 5.4l4-3.1z"/><path fill="#EA4335" d="M12 4.8c1.8 0 3.3.6 4.5 1.8l3.4-3.4C17.9 1.2 15.2 0 12 0 7.4 0 3.4 2.7 1.4 6.6l4 3.1c.9-2.8 3.5-4.9 6.6-4.9z"/></svg>
           Continue with Google
         </button>
-        <button class="onb-social" id="onbApple">
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><path d="M17.05 12.5c-.03-2.5 2.05-3.7 2.14-3.75-1.17-1.7-3-1.94-3.65-1.97-1.55-.16-3.03.9-3.82.9-.8 0-2-.88-3.3-.86-1.7.03-3.27.99-4.15 2.5-1.77 3.06-.45 7.6 1.27 10.09.84 1.22 1.84 2.58 3.15 2.53 1.27-.05 1.75-.81 3.28-.81 1.53 0 1.96.81 3.3.79 1.36-.02 2.22-1.24 3.05-2.46.97-1.42 1.36-2.79 1.38-2.86-.03-.01-2.64-1.01-2.66-4.1zM14.6 4.9c.7-.85 1.17-2.02 1.04-3.2-1 .04-2.22.67-2.94 1.5-.65.74-1.22 1.94-1.06 3.08 1.13.09 2.28-.56 2.96-1.38z"/></svg>
+        <button class="onb-social apple" id="onbApple">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="currentColor"><path d="M17.05 12.5c-.03-2.5 2.05-3.7 2.14-3.75-1.17-1.7-3-1.94-3.65-1.97-1.55-.16-3.03.9-3.82.9-.8 0-2-.88-3.3-.86-1.7.03-3.27.99-4.15 2.5-1.77 3.06-.45 7.6 1.27 10.09.84 1.22 1.84 2.58 3.15 2.53 1.27-.05 1.75-.81 3.28-.81 1.53 0 1.96.81 3.3.79 1.36-.02 2.22-1.24 3.05-2.46.97-1.42 1.36-2.79 1.38-2.86-.03-.01-2.64-1.01-2.66-4.1zM14.6 4.9c.7-.85 1.17-2.02 1.04-3.2-1 .04-2.22.67-2.94 1.5-.65.74-1.22 1.94-1.06 3.08 1.13.09 2.28-.56 2.96-1.38z"/></svg>
           Continue with Apple
         </button>
         <div class="onb-login">Already have an account? <a href="#" id="onbLogin">Log in</a></div>
@@ -885,6 +923,16 @@
       </div>
       <div class="onb-footer">
         <button class="onb-next flame-bg" id="onbLoginSubmit">Log In</button>
+        <div class="onb-or line" style="font-size:12px;">or</div>
+        <div class="gsi-host" id="gsiLogin" style="max-width:none;"></div>
+        <button class="onb-social" id="onbGoogleLogin" style="max-width:none;">
+          <svg width="16" height="16" viewBox="0 0 24 24"><path fill="#4285F4" d="M23.5 12.3c0-.8-.1-1.6-.2-2.3H12v4.5h6.5c-.3 1.5-1.1 2.7-2.4 3.6v3h3.9c2.3-2.1 3.5-5.2 3.5-8.8z"/><path fill="#34A853" d="M12 24c3.2 0 5.9-1.1 7.9-2.9l-3.9-3c-1.1.7-2.4 1.1-4 1.1-3.1 0-5.7-2.1-6.6-4.9H1.4v3.1C3.4 21.3 7.4 24 12 24z"/><path fill="#FBBC05" d="M5.4 14.3c-.2-.7-.4-1.5-.4-2.3s.1-1.6.4-2.3V6.6H1.4C.5 8.3 0 10.1 0 12s.5 3.7 1.4 5.4l4-3.1z"/><path fill="#EA4335" d="M12 4.8c1.8 0 3.3.6 4.5 1.8l3.4-3.4C17.9 1.2 15.2 0 12 0 7.4 0 3.4 2.7 1.4 6.6l4 3.1c.9-2.8 3.5-4.9 6.6-4.9z"/></svg>
+          Continue with Google
+        </button>
+        <button class="onb-social apple" id="onbAppleLogin" style="max-width:none;">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="currentColor"><path d="M17.05 12.5c-.03-2.5 2.05-3.7 2.14-3.75-1.17-1.7-3-1.94-3.65-1.97-1.55-.16-3.03.9-3.82.9-.8 0-2-.88-3.3-.86-1.7.03-3.27.99-4.15 2.5-1.77 3.06-.45 7.6 1.27 10.09.84 1.22 1.84 2.58 3.15 2.53 1.27-.05 1.75-.81 3.28-.81 1.53 0 1.96.81 3.3.79 1.36-.02 2.22-1.24 3.05-2.46.97-1.42 1.36-2.79 1.38-2.86-.03-.01-2.64-1.01-2.66-4.1zM14.6 4.9c.7-.85 1.17-2.02 1.04-3.2-1 .04-2.22.67-2.94 1.5-.65.74-1.22 1.94-1.06 3.08 1.13.09 2.28-.56 2.96-1.38z"/></svg>
+          Continue with Apple
+        </button>
       </div>
     </section>
 
@@ -898,12 +946,13 @@
       <div class="onb-title">Create Account</div>
       <div class="onb-sub">Tell us a bit about yourself</div>
       <div class="onb-body">
-        <div class="onb-avatar-wrap">
-          <div class="onb-avatar" id="onbAvatar">
+        <div class="onb-avatar-wrap" style="flex-direction:column;align-items:center;">
+          <div class="onb-avatar" id="onbAvatar" style="cursor:pointer;">
             <span id="onbAvatarPlaceholder">🙂</span>
             <div class="cam" id="onbAvatarCam"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg></div>
           </div>
         </div>
+        <div style="text-align:center;font-size:12px;color:var(--text-faint);margin:-14px 0 18px;" id="onbAvatarHint">Tap to add your profile photo</div>
         <div class="onb-field" id="fldName">
           <label>Full Name</label>
           <div class="box"><input type="text" id="onbName" placeholder="e.g. Aria Johnson" autocomplete="off"></div>
@@ -948,34 +997,6 @@
           <label>Date of Birth</label>
           <div class="box"><input type="date" id="onbDob"></div>
           <div class="onb-err">You must be 18 or older</div>
-        </div>
-        <div class="onb-field" id="fldLoc">
-          <label>Location</label>
-          <div class="box">
-            <select id="onbLoc">
-              <option value="">Select your city</option>
-              <option data-lat="26.9124" data-lng="75.7873">Jaipur, India</option>
-              <option data-lat="26.2389" data-lng="73.0243">Jodhpur, India</option>
-              <option data-lat="28.6139" data-lng="77.209">Delhi, India</option>
-              <option data-lat="19.076" data-lng="72.8777">Mumbai, India</option>
-              <option data-lat="12.9716" data-lng="77.5946">Bengaluru, India</option>
-              <option data-lat="17.385" data-lng="78.4867">Hyderabad, India</option>
-              <option data-lat="13.0827" data-lng="80.2707">Chennai, India</option>
-              <option data-lat="22.5726" data-lng="88.3639">Kolkata, India</option>
-              <option data-lat="18.5204" data-lng="73.8567">Pune, India</option>
-              <option data-lat="23.0225" data-lng="72.5714">Ahmedabad, India</option>
-              <option data-lat="24.5854" data-lng="73.7125">Udaipur, India</option>
-              <option data-lat="25.2138" data-lng="75.8648">Kota, India</option>
-              <option data-lat="40.7128" data-lng="-74.006">New York, USA</option>
-              <option data-lat="41.8781" data-lng="-87.6298">Chicago, USA</option>
-              <option data-lat="30.2672" data-lng="-97.7431">Austin, USA</option>
-              <option data-lat="47.6062" data-lng="-122.3321">Seattle, USA</option>
-              <option data-lat="25.7617" data-lng="-80.1918">Miami, USA</option>
-              <option data-lat="34.0522" data-lng="-118.2437">Los Angeles, USA</option>
-            </select>
-            <span class="chev"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3"><path d="M6 9l6 6 6-6"/></svg></span>
-          </div>
-          <div class="onb-err">Please select your location</div>
         </div>
       </div>
       <div class="onb-footer">
@@ -1026,11 +1047,10 @@
       <div class="onb-body">
         <div class="onb-photo-grid" id="onbPhotoGrid"></div>
         <div class="onb-err" id="onbPhotoError" style="display:none;margin:0 0 10px;font-size:12.5px;"></div>
-        <div class="onb-photonote">Add at least 1 photo to continue · drag photos to reorder · the first one is your main photo</div>
+        <div class="onb-photonote">A photo is required · drag photos to reorder · the first one is your main photo</div>
       </div>
       <div class="onb-footer">
         <button class="onb-next flame-bg" id="onbFinish" disabled>Start Matching</button>
-        <button class="onb-skip" id="onbSkipPhotos">Skip for now</button>
       </div>
     </section>
 
@@ -1057,15 +1077,15 @@
       </button>
       <button class="navitem" data-nav="matches">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.6l-1-1a5.5 5.5 0 1 0-7.8 7.8l1 1L12 21l7.8-7.6 1-1a5.5 5.5 0 0 0 0-7.8z"/></svg>
-        Matches <span class="navbadge">12</span>
+        Matches <span class="navbadge" id="badgeMatches" style="display:none;"></span>
       </button>
       <button class="navitem" data-nav="chat">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 11.5a8.38 8.38 0 0 1-8.5 8.5 8.5 8.5 0 0 1-4-1L3 20l1.1-4.4A8.5 8.5 0 1 1 21 11.5z"/></svg>
-        Messages <span class="navbadge">5</span>
+        Messages <span class="navbadge" id="badgeMessages" style="display:none;"></span>
       </button>
       <button class="navitem" data-nav="likes">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.6l-1-1a5.5 5.5 0 1 0-7.8 7.8l1 1L12 21l7.8-7.6 1-1a5.5 5.5 0 0 0 0-7.8z" fill="currentColor" stroke="none" opacity=".15"/><path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.6l-1-1a5.5 5.5 0 1 0-7.8 7.8l1 1L12 21l7.8-7.6 1-1a5.5 5.5 0 0 0 0-7.8z"/></svg>
-        Likes You <span class="navbadge">99+</span>
+        Likes You <span class="navbadge" id="badgeLikes" style="display:none;"></span>
       </button>
       <button class="navitem" data-nav="saved">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 3h12v18l-6-4-6 4V3z"/></svg>
@@ -1081,7 +1101,7 @@
       </button>
       <button class="navitem" data-nav="notifications">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/></svg>
-        Notifications <span class="navbadge" id="notifNavBadge">4</span>
+        Notifications <span class="navbadge" id="notifNavBadge" style="display:none;"></span>
       </button>
       <div class="ai-nav-divider">Companions</div>
       <button class="navitem ai-nav" data-nav="ai-discover">
@@ -1107,7 +1127,7 @@
       <span class="boost-badge" id="boostBadge">🚀 Boost 30:00</span>
       <button class="bell-btn mobile-only" id="notifBellMobile" data-nav="notifications" title="Notifications">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/></svg>
-        <span class="bn-badge" id="notifBellBadge">4</span>
+        <span class="bn-badge" id="notifBellBadge" style="display:none;"></span>
       </button>
       <button class="filters-toggle" id="openFilters" style="margin-left:auto;">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 6h16M8 12h8M11 18h2"/></svg>
@@ -1177,9 +1197,9 @@
       <button class="mobile-only" id="backFromChat" style="margin-right:2px;color:var(--text-dim);">
         <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.3"><path d="M15 18l-6-6 6-6"/></svg>
       </button>
-      <div class="avatar sz40" id="chatAvatar" style="background-image:url('https://images.unsplash.com/photo-1524504388940-b1c1722653e1?w=200&h=200&fit=crop&crop=faces')"></div>
+      <div class="avatar sz40" id="chatAvatar"></div>
       <div>
-        <div class="nm" id="chatName">Sophia</div>
+        <div class="nm" id="chatName"></div>
         <div class="status" id="chatStatus">Online</div>
       </div>
       <div class="icons">
@@ -1247,7 +1267,14 @@
       <h1 style="flex:1;">Notifications</h1>
       <button id="clearNotifsBtn" style="font-size:12.5px;font-weight:700;color:var(--flame2);">Clear all</button>
     </div>
-    <div class="col-scroll" id="notifList"></div>
+    <div class="col-scroll">
+      <div id="notifPermBanner" style="display:none;margin:0 0 10px;padding:12px 14px;border-radius:14px;background:var(--card);border:1px solid var(--line);align-items:center;gap:10px;">
+        <span style="font-size:20px;">🔔</span>
+        <span style="flex:1;font-size:12.5px;color:var(--text-dim);line-height:1.4;">Get alerted about new matches, messages and likes even when Matchify is in the background.</span>
+        <button id="notifPermBtn" class="flame-bg" style="padding:8px 14px;border-radius:12px;font-weight:800;font-size:12.5px;color:#fff;">Turn on</button>
+      </div>
+      <div id="notifList"></div>
+    </div>
   </section>
 
   <!-- ================= SETTINGS ================= -->
@@ -1303,13 +1330,6 @@
           <select class="settings-input" id="languageSelect">
             <option>English (US)</option><option>Español</option><option>Français</option><option>Deutsch</option><option>Português</option>
           </select>
-        </div>
-        <div class="settings-row">
-          <label>Distance unit</label>
-          <div class="pill-select">
-            <button class="pill sel" data-unit="miles">Miles</button>
-            <button class="pill" data-unit="km">Kilometers</button>
-          </div>
         </div>
       </div>
 
@@ -1609,32 +1629,6 @@
               </div>
             </div>
             <div class="pf-field">
-              <label>Location</label>
-              <div class="box">
-                <select id="pfLoc">
-                  <option value="">Update your city…</option>
-                  <option data-lat="26.9124" data-lng="75.7873">Jaipur, India</option>
-                  <option data-lat="26.2389" data-lng="73.0243">Jodhpur, India</option>
-                  <option data-lat="28.6139" data-lng="77.209">Delhi, India</option>
-                  <option data-lat="19.076" data-lng="72.8777">Mumbai, India</option>
-                  <option data-lat="12.9716" data-lng="77.5946">Bengaluru, India</option>
-                  <option data-lat="17.385" data-lng="78.4867">Hyderabad, India</option>
-                  <option data-lat="13.0827" data-lng="80.2707">Chennai, India</option>
-                  <option data-lat="22.5726" data-lng="88.3639">Kolkata, India</option>
-                  <option data-lat="18.5204" data-lng="73.8567">Pune, India</option>
-                  <option data-lat="23.0225" data-lng="72.5714">Ahmedabad, India</option>
-                  <option data-lat="24.5854" data-lng="73.7125">Udaipur, India</option>
-                  <option data-lat="25.2138" data-lng="75.8648">Kota, India</option>
-                  <option data-lat="40.7128" data-lng="-74.006">New York, USA</option>
-                  <option data-lat="41.8781" data-lng="-87.6298">Chicago, USA</option>
-                  <option data-lat="30.2672" data-lng="-97.7431">Austin, USA</option>
-                  <option data-lat="47.6062" data-lng="-122.3321">Seattle, USA</option>
-                  <option data-lat="25.7617" data-lng="-80.1918">Miami, USA</option>
-                  <option data-lat="34.0522" data-lng="-118.2437">Los Angeles, USA</option>
-                </select>
-              </div>
-            </div>
-            <div class="pf-field">
               <label>Bio</label>
               <div class="box"><textarea id="pfBio" maxlength="500"></textarea></div>
               <div class="pf-charcount"><span id="pfBioCount">0</span>/500</div>
@@ -1682,7 +1676,7 @@
               <div class="verify-icon" id="pfVerifyIcon">🛡️</div>
               <div class="verify-text">
                 <div class="t1" id="pfVerifyT1">Get Verified</div>
-                <div class="t2" id="pfVerifyT2">Take a quick selfie to earn the blue badge</div>
+                <div class="t2" id="pfVerifyT2">Face check with your camera to earn the blue badge</div>
               </div>
               <button class="verify-btn flame-bg" id="pfVerifyBtn">Verify</button>
             </div>
@@ -1705,13 +1699,6 @@
             <div class="pf-field" style="margin-top:2px;">
               <input type="range" id="pfAgeRange" min="18" max="99" value="60" style="width:100%;">
             </div>
-            <div class="prefs-row">
-              <span class="lbl">Maximum distance</span>
-              <span class="val" id="pfDistVal">50 km</span>
-            </div>
-            <div class="pf-field" style="margin-top:2px;">
-              <input type="range" id="pfDistRange" min="1" max="200" value="50" style="width:100%;">
-            </div>
             
             
           </div>
@@ -1730,7 +1717,7 @@
             <div class="ph-edit"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2"><path d="M12 5v14M5 12h14"/></svg></div>
             <div class="ph-info">
               <div class="ph-name"><span id="pfPreviewName">Aria, 27</span><span class="verified" id="pfPreviewVerifiedBadge" style="display:none;"><svg viewBox="0 0 24 24" fill="#4EA1FF"><path d="M9 16.2L4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4z"/></svg></span></div>
-              <div class="ph-sub" id="pfPreviewJob">📷 Photographer · New York, USA</div>
+              <div class="ph-sub" id="pfPreviewJob"></div>
             </div>
           </div>
           <div class="section-card">
@@ -1781,22 +1768,34 @@
   <button class="bn-item" data-nav="likes">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 21C6 15.5 3 11.9 3 8.5 3 5.9 5.1 4 7.6 4c1.6 0 3.1.8 4 2.1.9-1.3 2.4-2.1 4-2.1C18.1 4 21 5.9 21 8.5c0 3.4-3 7-9 12.5z"/></svg>
     Likes
-    <span class="bn-badge">99+</span>
+    <span class="bn-badge" id="bnLikes" style="display:none;"></span>
   </button>
   <button class="bn-item" data-nav="matches">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="3" y="4" width="18" height="18" rx="3"/><path d="M8 2v4M16 2v4M3 10h18"/></svg>
     Matches
+    <span class="bn-badge" id="bnMatches" style="display:none;"></span>
   </button>
   <button class="bn-item" data-nav="chat">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M21 11.5a8.38 8.38 0 0 1-8.5 8.5 8.5 8.5 0 0 1-4-1L3 20l1.1-4.4A8.5 8.5 0 1 1 21 11.5z"/></svg>
     Chat
-    <span class="bn-badge">5</span>
+    <span class="bn-badge" id="bnChat" style="display:none;"></span>
   </button>
   <button class="bn-item" data-nav="profile">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4.4 3.6-8 8-8s8 3.6 8 8"/></svg>
     Profile
   </button>
 </nav>
+
+<!-- Face verification (live camera) -->
+<div class="face-modal" id="faceModal">
+  <div class="face-box">
+    <div class="face-video-wrap"><video id="faceVideo" playsinline muted></video><div class="face-oval"></div></div>
+    <div class="face-step" id="faceStep">Step 1 of 2</div>
+    <div class="face-msg" id="faceMsg"></div>
+    <button class="flame-bg" id="faceShot" type="button">Take photo 1</button>
+    <button class="face-cancel" id="faceCancel" type="button">Cancel</button>
+  </div>
+</div>
 
 <!-- ================= FILTERS SHEET ================= -->
 <div class="filters-panel" id="filtersPanel">
@@ -1806,8 +1805,8 @@
       <button id="closeFilters" style="color:var(--text-dim);"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"/></svg></button>
     </div>
     <div class="f-row">
-      <div class="f-label"><span>Location</span><span class="f-value" id="distVal">20 miles</span></div>
-      <input type="range" id="distRange" min="1" max="100" value="20">
+      <div class="f-label"><span>Where</span><span class="f-value">Worldwide 🌍</span></div>
+      <div style="font-size:12px;color:var(--text-faint);margin-top:6px;">You can match with people from every country.</div>
     </div>
     <div class="f-row">
       <div class="f-label"><span>Age Range</span><span class="f-value" id="ageVal">22 – 30</span></div>
@@ -1864,7 +1863,7 @@
 <!-- ================= MATCH MODAL ================= -->
 <div class="match-modal" id="matchModal">
   <div class="fraunces title flame-text" style="font-style:italic;">It's a Match!</div>
-  <div class="sub">You and <span id="matchName">Sophia</span> liked each other</div>
+  <div class="sub">You and <span id="matchName"></span> liked each other</div>
   <div class="match-circles">
     <div class="av" style="background-image:url('https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=300&h=300&fit=crop&crop=faces')"></div>
     <div class="heart"><svg width="20" height="20" viewBox="0 0 24 24" fill="#fff"><path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.6l-1-1a5.5 5.5 0 1 0-7.8 7.8l1 1L12 21l7.8-7.6 1-1a5.5 5.5 0 0 0 0-7.8z"/></svg></div>
@@ -1967,7 +1966,24 @@
     return 'https://machlify.onrender.com';
   })();
 
-  async function apiFetch(path, options = {}){
+  // One shared refresh request at a time: several calls failing with 401 together must not each
+  // spend the (single-use) refresh token, or the server treats it as theft and ends the session.
+  let refreshInFlight = null;
+  function refreshSession(){
+    if(!refreshInFlight){
+      refreshInFlight = fetch(API_BASE + '/api/auth/refresh', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: '{}',
+      }).then(r => r.ok).catch(() => false).finally(() => { setTimeout(() => { refreshInFlight = null; }, 0); });
+    }
+    return refreshInFlight;
+  }
+  // Auth endpoints where a 401 is a real answer (bad password, no session yet), not an expired access token.
+  const NO_REFRESH_PATHS = /^\/api\/auth\/(login|register|google|apple|refresh|password\/(forgot|reset)|verify-email|account\/restore)/;
+
+  async function apiFetch(path, options = {}, _retried = false){
     let res;
     try{
       res = await fetch(API_BASE + path, {
@@ -1991,6 +2007,10 @@
     }
     let json;
     try { json = await res.json(); } catch(e) { json = null; }
+    // The 15-minute access token expired: quietly get a new one with the refresh cookie and retry once.
+    if(res.status === 401 && !_retried && !NO_REFRESH_PATHS.test(path) && json && json.error && json.error.code === 'UNAUTHORIZED'){
+      if(await refreshSession()) return apiFetch(path, options, true);
+    }
     if(!res.ok || !json || json.success === false){
       const message = json && json.error && json.error.message ? json.error.message : `Request failed (${res.status})`;
       const err = new Error(message);
@@ -2010,10 +2030,10 @@
     swipe: (targetUserId, liked) => apiFetch('/api/swipes', { method:'POST', body: { targetUserId, liked } }),
     matches: () => apiFetch('/api/matches'),
     conversations: () => apiFetch('/api/conversations'),
+    likesYou: () => apiFetch('/api/swipes/likes-you'),
     messages: (conversationId) => apiFetch(`/api/conversations/${conversationId}/messages`),
-    sendMessage: (conversationId, content) => apiFetch(`/api/conversations/${conversationId}/messages`, { method:'POST', body: { content } }),
+    sendMessage: (conversationId, content, type) => apiFetch(`/api/conversations/${conversationId}/messages`, { method:'POST', body: type ? { content, type } : { content } }),
     updateProfile: (b) => apiFetch('/api/profile', { method:'PATCH', body: b }),
-    updateLocation: (latitude, longitude) => apiFetch('/api/profile/location', { method:'PATCH', body: { latitude, longitude } }),
     updatePreferences: (b) => apiFetch('/api/profile/preferences', { method:'PATCH', body: b }),
     updateInterests: (interests) => apiFetch('/api/profile/interests', { method:'PATCH', body: { interests } }),
     blocks: () => apiFetch('/api/blocks'),
@@ -2052,6 +2072,7 @@
     markRead: (conversationId) => apiFetch(`/api/conversations/${conversationId}/read`, { method:'PATCH' }),
     // selfie upload is multipart, so it lives in uploadVerificationSelfie() below, not here.
     verificationStatus: () => apiFetch('/api/verification/status'),
+    faceChallenge: () => apiFetch('/api/verification/challenge'),
   };
   let currentUserId = null;
   // Logging in can "succeed" while the browser silently refuses the session cookie
@@ -2066,12 +2087,6 @@
   }
 
   // ---------------- Onboarding ----------------
-  const demoAvatars = [
-    "https://images.unsplash.com/photo-1524504388940-b1c1722653e1?w=300&h=300&fit=crop&crop=faces",
-    "https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=300&h=300&fit=crop&crop=faces",
-    "https://images.unsplash.com/photo-1531123897727-8f129e1688ce?w=300&h=300&fit=crop&crop=faces",
-    "https://images.unsplash.com/photo-1517841905240-472988babdf9?w=300&h=300&fit=crop&crop=faces"
-  ];
   const demoPhotos = [
     "https://images.unsplash.com/photo-1524504388940-b1c1722653e1?w=400&h=520&fit=crop&crop=faces",
     "https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=400&h=520&fit=crop&crop=faces",
@@ -2095,20 +2110,33 @@
     document.getElementById('onboarding').remove();
   }
   document.getElementById('onbLogin').addEventListener('click', e=>{ e.preventDefault(); onbShow('onb-login-screen'); });
-  // Google sign-in uses Google Identity Services; the ID token is verified server-side.
-  // Override with window.MATCHIFY_GOOGLE_CLIENT_ID if needed (must match GOOGLE_CLIENT_ID on the backend).
-  // Apple sign-in is not wired up.
+  // ---- Social sign-in ----
+  // Google: Google Identity Services renders Google's own official button (one
+  // click, no second popup); the ID token it returns is verified server-side.
+  // Apple: Sign in with Apple JS (popup). Needs APPLE_CLIENT_ID on the backend.
+  const FALLBACK_GOOGLE_CLIENT_ID = '708129325781-3a0o43ahkief4d0cmmr3pq550vk9507e.apps.googleusercontent.com';
   function loadGsi(){
     return new Promise((resolve, reject)=>{
-      if(window.google && window.google.accounts) return resolve();
+      if(window.google && window.google.accounts && window.google.accounts.id) return resolve();
+      const existing = document.querySelector('script[data-gsi]');
+      if(existing){ existing.addEventListener('load', resolve); existing.addEventListener('error', ()=> reject(new Error('Could not load Google sign-in.'))); return; }
       const el = document.createElement('script');
-      el.src = 'https://accounts.google.com/gsi/client'; el.async = true;
-      el.onload = resolve; el.onerror = ()=> reject(new Error('Could not load Google sign-in.'));
+      el.src = 'https://accounts.google.com/gsi/client'; el.async = true; el.defer = true; el.dataset.gsi = '1';
+      el.onload = resolve; el.onerror = ()=> reject(new Error('Could not load Google sign-in. Check your connection.'));
       document.head.appendChild(el);
     });
   }
   let socialProvider = 'google';
+  let socialBusy = false;
+  function decodeJwtPayload(token){
+    try{
+      const part = token.split('.')[1].replace(/-/g,'+').replace(/_/g,'/');
+      return JSON.parse(decodeURIComponent(escape(atob(part))));
+    }catch(e){ return {}; }
+  }
   async function handleSocialToken(provider, idToken){
+    if(socialBusy) return;
+    socialBusy = true;
     socialProvider = provider;
     try{
       const { user } = provider === 'apple' ? await Api.appleLogin(idToken) : await Api.googleLogin(idToken);
@@ -2118,18 +2146,24 @@
       await bootAuthenticatedApp();
     }catch(err){
       if(/No account found/i.test(err.message || '')){
-        // Existing-account login failed because there's no account yet: continue as a
-        // new Google sign-up, collecting what Google doesn't provide (DOB, gender, location…).
+        // First time with this Google/Apple account: only the things the provider
+        // doesn't give us (DOB, gender, who you want to meet) are asked for.
         googleIdToken = idToken; // holds the Google or Apple ID token (see socialProvider)
+        const claims = decodeJwtPayload(idToken);
+        const nameInput = document.getElementById('onbName');
+        if(!nameInput.value.trim() && claims.name) nameInput.value = claims.name;
         document.getElementById('fldEmail').style.display = 'none';
         document.getElementById('fldPassword').style.display = 'none';
-        pfToast('Almost there — tell us a bit more to finish creating your account.');
+        const modal = document.getElementById('appleModal'); if(modal) modal.remove();
+        pfToast('Almost there — tell us a bit more to finish creating your profile.');
         onbShow('onb-account');
       } else pfToast(err.message || (provider === 'apple' ? 'Apple' : 'Google') + ' sign-in failed.');
+    }finally{
+      socialBusy = false;
     }
   }
   function handleGoogleCredential(resp){
-    const modal = document.getElementById('googleModal'); if(modal) modal.remove();
+    if(!resp || !resp.credential){ pfToast('Google sign-in was cancelled.'); return; }
     return handleSocialToken('google', resp.credential);
   }
   let authConfigPromise = null;
@@ -2138,53 +2172,135 @@
     // Don't make the buttons wait on a slow/sleeping server: fall back after 3s.
     return Promise.race([authConfigPromise, new Promise(r=> setTimeout(()=> r({}), 3000))]);
   }
-  document.getElementById('onbGoogle').addEventListener('click', async ()=>{
-    pfToast('Opening Google…');
+
+  // Render Google's real button into both the welcome and log-in screens.
+  let gsiReady = false;
+  async function setupGoogleButtons(){
     const cfg = await getAuthConfig();
-    const clientId = window.MATCHIFY_GOOGLE_CLIENT_ID || cfg.googleClientId || '708129325781-3a0o43ahkief4d0cmmr3pq550vk9507e.apps.googleusercontent.com';
-    if(!clientId){ pfToast('Google sign-in isn\'t configured yet.'); return; }
-    try{ await loadGsi(); }catch(err){ pfToast(err.message); return; }
-    const wrap = document.createElement('div');
-    wrap.id = 'googleModal'; wrap.className = 'confirm-modal open';
-    wrap.innerHTML = '<div class="confirm-box"><h3>Continue with Google</h3><div id="googleBtnHost" style="display:flex;justify-content:center;margin:16px 0;"></div><p style="font-size:11.5px;margin:0 0 14px;color:var(--text-dim);">If Google shows an error, add this site (' + location.origin + ') to Authorized JavaScript origins in Google Cloud Console.</p><div class="row"><button class="confirm-cancel">Cancel</button></div></div>';
-    document.body.appendChild(wrap);
-    wrap.querySelector('.confirm-cancel').addEventListener('click', ()=> wrap.remove());
-    window.google.accounts.id.initialize({ client_id: clientId, callback: handleGoogleCredential });
-    window.google.accounts.id.renderButton(document.getElementById('googleBtnHost'), { theme:'filled_black', size:'large', shape:'pill' });
-  });
+    const clientId = window.MATCHIFY_GOOGLE_CLIENT_ID || cfg.googleClientId || FALLBACK_GOOGLE_CLIENT_ID;
+    if(!clientId) return;
+    try{ await loadGsi(); }catch(err){ return; } // custom fallback buttons stay visible
+    try{
+      window.google.accounts.id.initialize({ client_id: clientId, callback: handleGoogleCredential, ux_mode: 'popup', auto_select: false });
+      [['gsiSplash','onbGoogle', 320], ['gsiLogin','onbGoogleLogin', Math.min(360, Math.max(240, (document.querySelector('.onb-inner')||document.body).clientWidth - 48))]].forEach(([hostId, fallbackId, width])=>{
+        const host = document.getElementById(hostId); if(!host) return;
+        window.google.accounts.id.renderButton(host, { type:'standard', theme:'filled_black', size:'large', shape:'pill', text:'continue_with', logo_alignment:'center', width });
+        const fb = document.getElementById(fallbackId); if(fb) fb.style.display = 'none';
+      });
+      gsiReady = true;
+    }catch(err){ /* leave fallback buttons */ }
+  }
+  setupGoogleButtons();
+
+  // Fallback if Google's script couldn't load: try again, then explain.
+  async function googleFallbackClick(){
+    pfToast('Opening Google…');
+    await setupGoogleButtons();
+    if(!gsiReady) pfToast('Google sign-in could not start. Check your connection and allow accounts.google.com.');
+  }
+  ['onbGoogle','onbGoogleLogin'].forEach(id=> document.getElementById(id).addEventListener('click', googleFallbackClick));
+
+  // ---- Apple ----
   function loadAppleJs(){
     return new Promise((resolve, reject)=>{
       if(window.AppleID) return resolve();
       const el = document.createElement('script');
       el.src = 'https://appleid.cdn-apple.com/appleauth/static/jsapi/appleid/1/en_US/appleid.auth.js'; el.async = true;
-      el.onload = resolve; el.onerror = ()=> reject(new Error('Could not load Apple sign-in.'));
+      el.onload = resolve; el.onerror = ()=> reject(new Error('Could not load Sign in with Apple. Check your connection.'));
       document.head.appendChild(el);
     });
   }
-  document.getElementById('onbApple').addEventListener('click', async ()=>{
-    pfToast('Opening Apple…');
+  const APPLE_LOGO_SVG = '<svg width="30" height="30" viewBox="0 0 24 24" fill="currentColor"><path d="M17.05 12.5c-.03-2.5 2.05-3.7 2.14-3.75-1.17-1.7-3-1.94-3.65-1.97-1.55-.16-3.03.9-3.82.9-.8 0-2-.88-3.3-.86-1.7.03-3.27.99-4.15 2.5-1.77 3.06-.45 7.6 1.27 10.09.84 1.22 1.84 2.58 3.15 2.53 1.27-.05 1.75-.81 3.28-.81 1.53 0 1.96.81 3.3.79 1.36-.02 2.22-1.24 3.05-2.46.97-1.42 1.36-2.79 1.38-2.86-.03-.01-2.64-1.01-2.66-4.1zM14.6 4.9c.7-.85 1.17-2.02 1.04-3.2-1 .04-2.22.67-2.94 1.5-.65.74-1.22 1.94-1.06 3.08 1.13.09 2.28-.56 2.96-1.38z"/></svg>';
+  async function openAppleSheet(){
+    const old = document.getElementById('appleModal'); if(old) old.remove();
+    const wrap = document.createElement('div');
+    wrap.id = 'appleModal'; wrap.className = 'confirm-modal open';
+    wrap.innerHTML = `
+      <div class="confirm-box apple-sheet">
+        <div class="apple-logo">${APPLE_LOGO_SVG}</div>
+        <h3>Sign in with Apple</h3>
+        <p class="lead">Use your Apple ID to join Matchify. No new password to remember.</p>
+        <ul class="apple-points">
+          <li><span class="pi">🔒</span><span><b>Private by design</b>Apple never shares your activity with us.</span></li>
+          <li><span class="pi">✉️</span><span><b>Hide My Email</b>Keep your real address private if you prefer.</span></li>
+          <li><span class="pi">⚡</span><span><b>Fast &amp; secure</b>Confirm with Face ID, Touch ID or your Apple ID.</span></li>
+        </ul>
+        <div class="apple-note" id="appleNote"></div>
+        <button class="apple-go" id="appleGo">${APPLE_LOGO_SVG.replace('width="30" height="30"','width="18" height="18"')} Continue with Apple</button>
+        <div class="row"><button class="confirm-cancel" id="appleCancel">Cancel</button></div>
+      </div>`;
+    document.body.appendChild(wrap);
+    const note = wrap.querySelector('#appleNote');
+    const go = wrap.querySelector('#appleGo');
+    const showNote = msg => { note.textContent = msg; note.classList.add('show'); };
+    wrap.querySelector('#appleCancel').addEventListener('click', ()=> wrap.remove());
+    wrap.addEventListener('click', e=>{ if(e.target === wrap) wrap.remove(); });
+
     const cfg = await getAuthConfig();
     const clientId = window.MATCHIFY_APPLE_CLIENT_ID || cfg.appleClientId;
-    if(!clientId){ pfToast('Apple sign-in isn\'t set up yet. Please use Google or email to continue.'); return; }
-    try{ await loadAppleJs(); }catch(err){ pfToast(err.message); return; }
-    try{
-      window.AppleID.auth.init({ clientId, scope:'name email', redirectURI: window.location.origin, usePopup:true });
-      const resp = await window.AppleID.auth.signIn();
-      await handleSocialToken('apple', resp.authorization.id_token);
-    }catch(err){
-      if(err && err.error === 'popup_closed_by_user') return;
-      pfToast((err && (err.message || err.error)) || 'Apple sign-in failed.');
+    if(!clientId){
+      showNote('Sign in with Apple isn\'t switched on for this server yet (the owner needs to set APPLE_CLIENT_ID). Please continue with Google or email for now.');
+      go.setAttribute('disabled','');
+      return;
     }
-  });
+    go.addEventListener('click', async ()=>{
+      go.setAttribute('disabled','');
+      note.classList.remove('show');
+      try{
+        await loadAppleJs();
+        window.AppleID.auth.init({ clientId, scope:'name email', redirectURI: window.location.origin, usePopup:true });
+        const resp = await window.AppleID.auth.signIn();
+        await handleSocialToken('apple', resp.authorization.id_token);
+      }catch(err){
+        if(!(err && err.error === 'popup_closed_by_user')) showNote((err && (err.message || err.error)) || 'Apple sign-in failed. Please try again.');
+      }finally{ go.removeAttribute('disabled'); }
+    });
+  }
+  ['onbApple','onbAppleLogin'].forEach(id=> document.getElementById(id).addEventListener('click', openAppleSheet));
 
   // -- Step 1: Create Account --
-  let avatarIdx = -1;
-  document.getElementById('onbAvatarCam').addEventListener('click', e=>{
-    e.stopPropagation();
-    avatarIdx = (avatarIdx + 1) % demoAvatars.length;
+  // Real profile picture: picked here, shown in the circle, and used as the
+  // first (main) photo. It is uploaded with the other photos once the account
+  // exists (see submitRegistration). Photo step slot 0 mirrors it.
+  const avatarInput = document.createElement('input');
+  avatarInput.type = 'file';
+  avatarInput.accept = 'image/jpeg,image/png,image/webp';
+  avatarInput.style.display = 'none';
+  document.body.appendChild(avatarInput);
+  let avatarUrl = null;
+  function paintAvatar(){
     const av = document.getElementById('onbAvatar');
-    av.style.backgroundImage = `url('${demoAvatars[avatarIdx]}')`;
-    document.getElementById('onbAvatarPlaceholder').style.display = 'none';
+    if(avatarUrl){ URL.revokeObjectURL(avatarUrl); avatarUrl = null; }
+    const f = selectedPhotoFiles[0];
+    if(f){
+      avatarUrl = URL.createObjectURL(f);
+      av.style.backgroundImage = `url('${avatarUrl}')`;
+      document.getElementById('onbAvatarPlaceholder').style.display = 'none';
+      document.getElementById('onbAvatarHint').textContent = 'Tap to change your photo';
+    } else {
+      av.style.backgroundImage = '';
+      document.getElementById('onbAvatarPlaceholder').style.display = '';
+      document.getElementById('onbAvatarHint').textContent = 'Tap to add your profile photo';
+    }
+  }
+  ['onbAvatar','onbAvatarCam'].forEach(id=> document.getElementById(id).addEventListener('click', e=>{
+    e.stopPropagation();
+    avatarInput.click();
+  }));
+  avatarInput.addEventListener('change', ()=>{
+    const f = avatarInput.files && avatarInput.files[0];
+    avatarInput.value = '';
+    if(!f) return;
+    if(!['image/jpeg','image/png','image/webp'].includes(f.type)){ pfToast('Only JPEG, PNG or WebP photos are supported.'); return; }
+    if(f.size > 15*1024*1024){ pfToast('That photo is too large (15MB max).'); return; }
+    // Becomes photo #1; whatever was there moves to the next free slot.
+    const prev = selectedPhotoFiles[0];
+    selectedPhotoFiles[0] = f;
+    paintSlot(0);
+    if(prev){
+      for(let k=1;k<SLOT_COUNT;k++){ if(!selectedPhotoFiles[k]){ selectedPhotoFiles[k] = prev; paintSlot(k); break; } }
+    }
+    refreshPhotos();
   });
 
   function setInvalid(fieldId, invalid){
@@ -2198,7 +2314,6 @@
     const password = document.getElementById('onbPassword').value;
     const gender = document.getElementById('onbGender').value;
     const dob = document.getElementById('onbDob').value;
-    const loc = document.getElementById('onbLoc').value;
     let ok = true;
 
     if(!name){ setInvalid('fldName', true); ok = false; } else setInvalid('fldName', false);
@@ -2221,14 +2336,12 @@
     }
     if(!dobOk){ setInvalid('fldDob', true); ok = false; } else setInvalid('fldDob', false);
 
-    if(!loc){ setInvalid('fldLoc', true); ok = false; } else setInvalid('fldLoc', false);
-
     return ok;
   }
   document.getElementById('onbToInterests').addEventListener('click', ()=>{
     if(validAccount()) onbShow('onb-interests');
   });
-  ['onbName','onbEmail','onbPassword','onbGender','onbInterestedIn','onbDob','onbLoc'].forEach(id=>{
+  ['onbName','onbEmail','onbPassword','onbGender','onbInterestedIn','onbDob'].forEach(id=>{
     document.getElementById(id).addEventListener('input', validAccount);
     document.getElementById(id).addEventListener('change', validAccount);
   });
@@ -2401,6 +2514,7 @@
   function refreshPhotos(){
     const n = document.querySelectorAll('.onb-photo-slot.filled').length;
     finishBtn.disabled = n < 1;
+    try{ paintAvatar(); }catch(e){}
   }
   // Uploads every photo picked in onboarding via real multipart/form-data
   // POST requests to /api/photos. Called right after login succeeds. Each
@@ -2424,18 +2538,25 @@
     return json.data.photo;
   }
 
-  // Discovery is gated server-side on location + preferences (it returns an
-  // error until they exist), so onboarding must save them, not just collect
-  // them. Each call is independent — a failure is reported but doesn't stop
+  // Discovery is gated server-side on preferences (location is no longer
+  // used - people from every country can match), so onboarding saves them. Each call is independent — a failure is reported but doesn't stop
   // the rest of setup.
+  // Used only by "share my location" inside a chat (not for matching).
+  function getLivePosition(){
+    return new Promise((resolve, reject)=>{
+      if(!navigator.geolocation) return reject(new Error('This browser does not support location.'));
+      navigator.geolocation.getCurrentPosition(
+        pos=> resolve({ latitude: pos.coords.latitude, longitude: pos.coords.longitude }),
+        err=> reject(new Error(err.code === 1 ? 'Location permission was denied. Allow it in your browser settings.' : 'Could not get your location. Try again.')),
+        { enableHighAccuracy:true, timeout:15000, maximumAge:60000 }
+      );
+    });
+  }
+
   async function completeProfileSetup({ gender, interestedIn }){
-    const locOpt = document.getElementById('onbLoc').selectedOptions[0];
-    const lat = locOpt ? parseFloat(locOpt.dataset.lat) : NaN;
-    const lng = locOpt ? parseFloat(locOpt.dataset.lng) : NaN;
     const genders = interestedIn === 'EVERYONE' ? ['MAN','WOMAN','NONBINARY'] : [interestedIn];
     const steps = [
-      ['location', ()=> Number.isFinite(lat) ? Api.updateLocation(lat, lng) : Promise.resolve()],
-      ['preferences', ()=> Api.updatePreferences({ minAge:18, maxAge:60, maxDistanceKm:100, genders })],
+      ['preferences', ()=> Api.updatePreferences({ minAge:18, maxAge:99, genders })],
       ['interests', ()=> Api.updateInterests(selectedInterests())],
     ];
     for(const [label, fn] of steps){
@@ -2447,6 +2568,22 @@
     const form = new FormData();
     form.append('file', file);
     const res = await fetch(API_BASE + '/api/verification/photo', { method:'POST', credentials:'include', body: form });
+    let json;
+    try { json = await res.json(); } catch(e) { json = null; }
+    if(!res.ok || !json || json.success === false){
+      const err = new Error(json && json.error && json.error.message ? json.error.message : `Upload failed (${res.status})`);
+      err.code = json && json.error && json.error.code;
+      throw err;
+    }
+    return json.data;
+  }
+
+  async function uploadFaceFrames(neutralBlob, challengeBlob, challengeToken){
+    const form = new FormData();
+    form.append('neutral', neutralBlob, 'neutral.jpg');
+    form.append('challenge', challengeBlob, 'challenge.jpg');
+    form.append('challengeToken', challengeToken);
+    const res = await fetch(API_BASE + '/api/verification/face', { method:'POST', credentials:'include', body: form });
     let json;
     try { json = await res.json(); } catch(e) { json = null; }
     if(!res.ok || !json || json.success === false){
@@ -2475,14 +2612,11 @@
     } else {
       pfToast(`${succeeded} photo${succeeded===1?'':'s'} uploaded.`);
     }
-    // The first photo is also submitted for verification review (a moderator
-    // approves it — nothing is marked verified automatically).
-    try{ await uploadVerificationSelfie(files[0]); }
-    catch(err){ /* not fatal; user can retry from Profile > Verify */ }
+    // No verification step during sign-up: the profile is live once photos are
+    // uploaded (or skipped). The optional blue badge lives in Profile > Verify.
   }
 
   let registering = false;
-  const skipBtn = document.getElementById('onbSkipPhotos');
   function setRegisterBusy(busy){
     clearTimeout(setRegisterBusy._t);
     if(busy){
@@ -2491,8 +2625,6 @@
     }
     finishBtn.textContent = busy ? 'Creating your profile…' : 'Start Matching';
     finishBtn.style.pointerEvents = busy ? 'none' : '';
-    skipBtn.style.pointerEvents = busy ? 'none' : '';
-    skipBtn.style.opacity = busy ? '.5' : '';
   }
   async function submitRegistration(){
     if(registering) return;
@@ -2539,7 +2671,6 @@
       setRegisterBusy(false);
     }
   }
-  document.getElementById('onbSkipPhotos').addEventListener('click', submitRegistration);
   finishBtn.addEventListener('click', ()=>{ if(!finishBtn.disabled) submitRegistration(); });
 
   // -- Log In --
@@ -2584,21 +2715,11 @@
   let matches = [
   ];
 
-  const chatSeed = [
-    { who:"them", text:"Hey! 👋", t:"10:30 AM" },
-    { who:"me", text:"Hey Sophia! How are you?", t:"10:31 AM" },
-    { who:"them", text:"I'm good! Just finished a photoshoot 📸", t:"10:32 AM" },
-    { who:"me", text:"Nice! I'd love to see some of your work", t:"10:33 AM" }
-  ];
   const chatPhotos = [
     "https://images.unsplash.com/photo-1518791841217-8f162f1e1131?w=200&h=200&fit=crop",
     "https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=200&h=200&fit=crop",
     "https://images.unsplash.com/photo-1502920917128-1aa500764cbd?w=200&h=200&fit=crop"
   ];
-  // NOTE: chatSeed/chatPhotos above are still placeholder content — real
-  // message history is NOT wired yet (see loadConversationMessages, a stub
-  // below). Opening a real match's chat currently still shows this seed
-  // text rather than actual messages from the conversation.
 
   // ---------------- Real data loading (backend-connected) ----------------
   const PLACEHOLDER_AVATAR = 'data:image/svg+xml;utf8,' + encodeURIComponent(
@@ -2613,7 +2734,6 @@
       age: p.age,
       job: '', // not returned by the current discovery API
       loc: '',
-      dist: typeof p.distanceKm === 'number' ? `${p.distanceKm} km away` : '',
       verified: !!p.verified,
       img: photoUrls[0] || PLACEHOLDER_AVATAR,
       photos: photoUrls.length ? photoUrls : [PLACEHOLDER_AVATAR],
@@ -2642,16 +2762,85 @@
       name: m.user.name,
       userId: m.user.id,
       img: m.user.primaryPhoto || PLACEHOLDER_AVATAR,
-      sub: 'Say hi 👋',
+      sub: 'You matched! Say hi 👋',
       time: '',
-      isNew: false,
+      isNew: true,      // no messages yet
+      unread: 0,
+      updatedAt: m.createdAt || null,
     };
+  }
+
+  function fmtListTime(d){
+    if(!d) return '';
+    const dt = new Date(d); if(isNaN(dt)) return '';
+    const now = new Date();
+    if(dt.toDateString() === now.toDateString()) return dt.toLocaleTimeString([], {hour:'numeric', minute:'2-digit'});
+    const diffDays = (now - dt) / 86400000;
+    if(diffDays < 7) return dt.toLocaleDateString([], {weekday:'short'});
+    return dt.toLocaleDateString([], {month:'short', day:'numeric'});
+  }
+
+  // Real conversation data: last message text, time and unread count per match.
+  async function loadConversationsMeta(){
+    try{
+      const data = await Api.conversations();
+      (data.conversations || []).forEach(c=>{
+        const m = matches.find(x=> x.conversationId === c.conversationId);
+        if(!m) return;
+        m.unread = c.unreadCount || 0;
+        if(c.lastMessage){
+          const mine = c.lastMessage.senderId === currentUserId;
+          const text = c.lastMessage.content == null ? 'Message deleted' : c.lastMessage.content;
+          m.sub = (mine ? 'You: ' : '') + text.slice(0, 60);
+          m.time = fmtListTime(c.lastMessage.createdAt);
+          m.isNew = false;
+          m.updatedAt = c.lastMessage.createdAt;
+        }
+      });
+      matches.sort((a,b)=> new Date(b.updatedAt||0) - new Date(a.updatedAt||0));
+    }catch(err){ /* keep defaults */ }
+  }
+
+  // ---------------- Real badge counts ----------------
+  let likesYou = [];
+  let notifications = [];
+  function setBadge(el, n){
+    if(!el) return;
+    el.textContent = n > 99 ? '99+' : String(n);
+    el.style.display = n > 0 ? '' : 'none';
+  }
+  function updateBadges(){
+    const newMatches = matches.filter(m=> m.isNew && !m.demo).length + matches.filter(m=> m.demo && m.isNew).length;
+    const unreadMsgs = matches.reduce((n,m)=> n + (m.unread || 0), 0);
+    setBadge(document.getElementById('badgeMatches'), newMatches);
+    setBadge(document.getElementById('bnMatches'), newMatches);
+    setBadge(document.getElementById('badgeMessages'), unreadMsgs);
+    setBadge(document.getElementById('bnChat'), unreadMsgs);
+    setBadge(document.getElementById('badgeLikes'), likesYou.length);
+    setBadge(document.getElementById('bnLikes'), likesYou.length);
+    const unreadNotifs = notifications.filter(n=>n.unread).length;
+    setBadge(document.getElementById('notifNavBadge'), unreadNotifs);
+    setBadge(document.getElementById('notifBellBadge'), unreadNotifs);
+    if(navigator.setAppBadge){ try{ (unreadMsgs + unreadNotifs) > 0 ? navigator.setAppBadge(unreadMsgs + unreadNotifs) : navigator.clearAppBadge(); }catch(e){} }
+  }
+  async function loadLikesYou(){
+    try{
+      const data = await Api.likesYou();
+      likesYou = (data.likes || []).map(l=>({
+        id: l.id, name: l.name, age: l.age, job:'', loc:'', verified:false,
+        img: l.photo || PLACEHOLDER_AVATAR, photos:[l.photo || PLACEHOLDER_AVATAR],
+        online:false, isNew:false, isPopular:false, compat:null, compatBreak:{}, bio:'', interests:[],
+      }));
+    }catch(err){ likesYou = []; }
+    renderLikesGrid();
+    updateBadges();
   }
 
   async function loadMatches(){
     try{
       const data = await Api.matches();
       matches = (data.matches || []).map(mapMatchToListItem);
+      await loadConversationsMeta();
     }catch(err){
       matches = [];
       if(!DEMO_MODE) pfToast(err.message || 'Could not load matches.');
@@ -2688,7 +2877,7 @@
       const city = DEMO_CITIES[i % DEMO_CITIES.length];
       return {
         id:'demo-'+(i+1), demo:true, name, age: 21 + (i*7)%13,
-        job: DEMO_JOBS[i % DEMO_JOBS.length], loc: city, dist: (1 + (i*3)%24) + ' km away',
+        job: DEMO_JOBS[i % DEMO_JOBS.length], loc: '',
         verified: i % 3 === 0, img, photos:[img],
         online: i % 4 === 0, isNew: i % 5 === 0, isPopular: i % 7 === 0, compat:null, compatBreak:{},
         bio: '[Demo] ' + DEMO_BIOS[i % DEMO_BIOS.length], interests
@@ -2729,6 +2918,7 @@
     await Promise.all([safe(loadDiscoveryFeed), safe(loadMatches)]);
     safe(refreshVerificationStatus);
     safe(loadNotifications);
+    safe(loadLikesYou);
     safe(loadBlocked);
     safe(loadPlans);
     safe(refreshSubscription);
@@ -2768,7 +2958,7 @@
       <div class="avatar sz48" style="background-image:url('${safeUrl(m.img)}');cursor:pointer;">${m.isNew?'<span class="dot"></span>':''}</div>
       <div class="body">
         <div class="row1"><span class="nm">${escapeHtml(m.name)}</span><span class="tm">${escapeHtml(m.time)}</span></div>
-        <div class="sub ${m.isNew?'new':''}">${escapeHtml(m.sub)}</div>
+        <div class="row1"><div class="sub ${m.unread?'unread':(m.isNew?'new':'')}" style="flex:1;min-width:0;">${escapeHtml(m.sub)}</div>${m.unread ? `<span class="unread-pill">${m.unread > 99 ? '99+' : m.unread}</span>` : ''}</div>
       </div>`;
     row.querySelector('.avatar').addEventListener('click', e=>{
       e.stopPropagation();
@@ -2776,7 +2966,7 @@
       if(p) openProfileSheet(p, 0, 'match');
       else openChat(m);
     });
-    row.addEventListener('click', ()=>{ m.isNew = false; openChat(m); setActiveNav('chat'); renderMatchesLists(); });
+    row.addEventListener('click', ()=>{ openChat(m); setActiveNav('chat'); });
     return row;
   }
   const dList = document.getElementById('matchesListDesktop');
@@ -2789,11 +2979,7 @@
     } else {
       matches.forEach(m=>{ dList.appendChild(matchRow(m)); mList.appendChild(matchRow(m)); });
     }
-    document.querySelectorAll('.navbadge').forEach(b=>{}); // placeholder, real update below
-    const matchesBadge = document.querySelector('[data-nav="matches"] .navbadge');
-    if(matchesBadge) matchesBadge.textContent = matches.length;
-    const matchesBn = document.querySelector('.bn-item[data-nav="matches"] .bn-badge');
-    if(matchesBn) matchesBn.textContent = matches.length;
+    updateBadges();
   }
   renderMatchesLists();
 
@@ -2916,11 +3102,23 @@
   const likesGrid = document.getElementById('likesGrid');
   function renderLikesGrid(){
     likesGrid.innerHTML = '';
-    profiles.concat(profiles).forEach((p,i)=>{
+    if(likesYou.length === 0){
+      likesGrid.style.display = 'block';
+      likesGrid.innerHTML = `<div style="color:var(--text-faint);padding-top:60px;text-align:center;font-size:13.5px;line-height:1.6;">No likes yet 💗<br>When someone likes you, they'll show up here.</div>`;
+      return;
+    }
+    likesGrid.style.display = 'grid';
+    if(!premiumActive){
+      const banner = document.createElement('div');
+      banner.style.cssText = 'grid-column:1/-1;padding:12px 14px;border-radius:14px;background:var(--card);border:1px solid var(--line);font-size:13px;color:var(--text-dim);text-align:center;';
+      banner.innerHTML = `<b style="color:var(--text);">${likesYou.length} ${likesYou.length===1?'person likes':'people like'} you</b><br>Upgrade to Premium to see who they are.`;
+      likesGrid.appendChild(banner);
+    }
+    likesYou.forEach(p=>{
       const el = document.createElement('div');
       el.style.cssText = 'position:relative;border-radius:16px;overflow:hidden;aspect-ratio:3/4;background-size:cover;background-position:center;cursor:pointer;';
-      el.style.backgroundImage = `url('${p.img}')`;
-      const isLocked = !premiumActive && i % 3 !== 0;
+      el.style.backgroundImage = `url('${safeUrl(p.img)}')`;
+      const isLocked = !premiumActive;
       el.innerHTML = isLocked
         ? `<div style="position:absolute;inset:0;backdrop-filter:blur(14px);background:rgba(20,15,22,.25);display:flex;align-items:center;justify-content:center;">
              <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2"><rect x="4" y="10" width="16" height="10" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg>
@@ -2949,6 +3147,12 @@
 
   function openChat(m){
     currentChat = m;
+    if(m && (m.unread || m.isNew)){
+      m.unread = 0;
+      // A match you've opened is no longer "new" for the badge.
+      m.isNew = false;
+      renderMatchesLists();
+    }
     document.getElementById('chatName').textContent = m.name;
     document.getElementById('chatAvatar').style.backgroundImage = `url('${m.img}')`;
     document.getElementById('chatStatus').textContent = statusText(m);
@@ -2973,7 +3177,18 @@
     b.className = 'bubble ' + (msg.senderId === currentUserId ? 'me' : 'them');
     b.dataset.mid = msg.id;
     const t = new Date(msg.createdAt).toLocaleTimeString([], {hour:'numeric', minute:'2-digit'});
-    b.innerHTML = `${escapeHtml(msg.content || '')}<span class="t">${t}</span>`;
+    const tm = `<span class="t">${t}</span>`;
+    if(msg.type === 'IMAGE' && msg.content){
+      b.style.padding = '4px';
+      b.innerHTML = `<a href="${safeHttpUrl(msg.content)}" target="_blank" rel="noopener noreferrer"><img src="${safeHttpUrl(msg.content)}" alt="Photo" style="width:200px;max-width:100%;border-radius:14px;display:block;"></a>${tm}`;
+    } else if(msg.type === 'AUDIO' && msg.content){
+      b.innerHTML = `<audio controls preload="metadata" src="${safeHttpUrl(msg.content)}" style="width:210px;max-width:100%;height:36px;"></audio>${tm}`;
+    } else if(msg.type === 'LOCATION' && /^geo:-?\d+(\.\d+)?,-?\d+(\.\d+)?$/.test(msg.content || '')){
+      const [la, lo] = msg.content.slice(4).split(',');
+      b.innerHTML = `📍 <a href="https://www.openstreetmap.org/?mlat=${la}&mlon=${lo}#map=16/${la}/${lo}" target="_blank" rel="noopener noreferrer" style="color:inherit;text-decoration:underline;font-weight:700;">Shared location</a>${tm}`;
+    } else {
+      b.innerHTML = `${escapeHtml(msg.content || '')}${tm}`;
+    }
     return b;
   }
 
@@ -3180,26 +3395,37 @@
     socket = io(API_BASE, { withCredentials: true, transports: ['websocket','polling'] });
 
     socket.on('connect_error', err=>{
-      if(err && err.message === 'UNAUTHORIZED') return; // not logged in yet / session expired
+      // Access token expired (or not logged in yet). socket.io does not retry middleware rejections
+      // by itself, so renew the session once and reconnect; if the refresh fails we stay offline.
+      if(err && err.message === 'UNAUTHORIZED'){
+        refreshSession().then(ok=>{ if(ok && socket) setTimeout(()=>{ try{ socket.connect(); }catch(e){} }, 300); });
+      }
     });
 
     socket.on('message:new', msg=>{
       const m = matches.find(x=> x.conversationId === msg.conversationId);
-      const isCurrent = currentChat && currentChat.conversationId === msg.conversationId;
-      if(isCurrent){
+      const isCurrent = currentChat && currentChat.conversationId === msg.conversationId && document.getElementById('view-chat').classList.contains('active');
+      const fromOther = msg.senderId !== currentUserId;
+      if(currentChat && currentChat.conversationId === msg.conversationId){
         appendMessage(msg);
-        if(msg.senderId !== currentUserId){
+        if(fromOther && isCurrent){
           socket.emit('message:read', { conversationId: msg.conversationId }, ()=>{});
         }
       }
       if(m){
-        m.sub = msg.content ? msg.content.slice(0, 40) : 'New message';
-        m.time = 'now';
+        m.sub = (fromOther ? '' : 'You: ') + (msg.content ? msg.content.slice(0, 60) : 'New message');
+        m.time = fmtListTime(msg.createdAt || new Date());
+        m.updatedAt = msg.createdAt || new Date().toISOString();
+        m.isNew = false;
+        if(fromOther && !isCurrent) m.unread = (m.unread || 0) + 1;
+        matches.sort((a,b)=> new Date(b.updatedAt||0) - new Date(a.updatedAt||0));
         renderMatchesLists();
-        if(!isCurrent && msg.senderId !== currentUserId){
-          addNotification({ icon:'💬', title:`<b>${escapeHtml(m.name)}</b> sent you a message`, sub:'Just now', type:'message' });
-        }
+      } else if(fromOther){
+        // Message from a match we haven't loaded yet.
+        loadMatches();
       }
+      // The in-app / browser alert comes from the server's MESSAGE notification
+      // (notification:new), so it isn't duplicated here.
     });
 
     socket.on('typing:start', ({ conversationId, userId })=>{
@@ -3226,9 +3452,16 @@
     // A new match created by the *other* person's swipe: the backend emits to
     // the user room; refresh the list so the match appears without a reload.
     socket.on('notification:new', n=>{
-      notifications.unshift(toUiNotification(n));
+      const ui = toUiNotification(n);
+      notifications.unshift(ui);
       renderNotifications();
       if(n.type === 'MATCH') loadMatches();
+      if(n.type === 'LIKE') loadLikesYou();
+      // Don't pop a banner for a message in the chat you're already looking at.
+      const p = n.payload || {};
+      const viewingThatChat = n.type === 'MESSAGE' && currentChat && currentChat.conversationId === p.conversationId && document.getElementById('view-chat').classList.contains('active');
+      if(viewingThatChat){ ui.unread = false; if(ui.id) Api.markNotificationRead(ui.id).catch(()=>{}); renderNotifications(); return; }
+      announceNotification(n, ui);
     });
 
     connectCallSignaling(socket);
@@ -3392,38 +3625,104 @@
     }
   });
 
-  // -- Attach / send photo --
-  document.getElementById('attachBtn').addEventListener('click', ()=>{
-    const url = chatPhotos[Math.floor(Math.random()*chatPhotos.length)];
-    sendPhotoMessage(url);
-    pfToast('Photo sent 📸');
+  // -- Attach: real photo from device, or share live location --
+  const chatFileInput = document.createElement('input');
+  chatFileInput.type = 'file'; chatFileInput.accept = 'image/jpeg,image/png,image/webp'; chatFileInput.style.display = 'none';
+  document.body.appendChild(chatFileInput);
+  const attachMenu = document.createElement('div');
+  attachMenu.style.cssText = 'position:fixed;display:none;flex-direction:column;gap:2px;background:var(--card-2,#241d28);border:1px solid var(--line,#333);border-radius:12px;padding:6px;z-index:300;';
+  attachMenu.innerHTML = '<button data-a="photo" style="padding:9px 12px;text-align:left;color:var(--text,#fff);font-weight:600;">📷 Photo</button><button data-a="loc" style="padding:9px 12px;text-align:left;color:var(--text,#fff);font-weight:600;">📍 Live location</button>';
+  document.body.appendChild(attachMenu);
+  document.addEventListener('click', e=>{ if(!attachMenu.contains(e.target) && e.target.closest('#attachBtn') == null) attachMenu.style.display = 'none'; });
+  document.getElementById('attachBtn').addEventListener('click', e=>{
+    const r = e.currentTarget.getBoundingClientRect();
+    attachMenu.style.left = Math.max(8, r.left) + 'px';
+    attachMenu.style.bottom = (window.innerHeight - r.top + 8) + 'px';
+    attachMenu.style.display = attachMenu.style.display === 'flex' ? 'none' : 'flex';
   });
+  attachMenu.addEventListener('click', async e=>{
+    const act = e.target.closest('[data-a]'); if(!act) return;
+    attachMenu.style.display = 'none';
+    if(act.dataset.a === 'photo') chatFileInput.click();
+    else shareLocationInChat();
+  });
+  chatFileInput.addEventListener('change', ()=>{ const f = chatFileInput.files[0]; chatFileInput.value=''; if(f) sendChatMedia(f); });
 
-  // -- Voice message (press and hold to record, demo) --
+  async function postChatMedia(file, filename){
+    const form = new FormData();
+    form.append('file', file, filename);
+    const res = await fetch(`${API_BASE}/api/conversations/${currentChat.conversationId}/media`, { method:'POST', credentials:'include', body: form });
+    let json; try{ json = await res.json(); }catch(e){ json = null; }
+    if(!res.ok || !json || json.success === false) throw new Error((json && json.error && json.error.message) || `Upload failed (${res.status})`);
+    appendMessage(json.data.message);
+  }
+  async function sendChatMedia(file){
+    if(!currentChat || !currentChat.conversationId){ pfToast('Open a chat first.'); return; }
+    if(!['image/jpeg','image/png','image/webp'].includes(file.type)){ pfToast('Only JPEG, PNG or WebP photos can be sent.'); return; }
+    if(file.size > 10*1024*1024){ pfToast('That photo is too large (10MB max).'); return; }
+    if(isDemoConv(currentChat.conversationId)){ sendPhotoMessage(URL.createObjectURL(file)); return; }
+    try{ pfToast('Sending photo…'); await postChatMedia(file, file.name); }
+    catch(err){ pfToast(err.message); }
+  }
+  async function shareLocationInChat(){
+    if(!currentChat || !currentChat.conversationId) return;
+    if(isDemoConv(currentChat.conversationId)){ pfToast('Location sharing needs a real match.'); return; }
+    try{
+      const pos = await getLivePosition();
+      const { message } = await Api.sendMessage(currentChat.conversationId, `geo:${pos.latitude.toFixed(5)},${pos.longitude.toFixed(5)}`, 'LOCATION');
+      appendMessage(message);
+    }catch(err){ pfToast(err.message); }
+  }
+
+  // -- Voice message: press and hold the mic to record real audio --
   const micBtn = document.getElementById('micBtn');
-  let recording = false, recordStart = 0;
+  let recorder = null, recChunks = [], recStream = null, recWantStop = false, recStart = 0;
+  async function startRecording(e){
+    if(recorder || !currentChat || !currentChat.conversationId) return;
+    if(!navigator.mediaDevices || !window.MediaRecorder){ pfToast('Voice messages need a secure (https) connection and microphone support.'); return; }
+    recWantStop = false;
+    try{ recStream = await navigator.mediaDevices.getUserMedia({ audio:true }); }
+    catch(err){ pfToast('Microphone permission was denied.'); return; }
+    if(recWantStop){ recStream.getTracks().forEach(t=>t.stop()); return; } // released before the mic was ready
+    const mime = ['audio/webm;codecs=opus','audio/webm','audio/mp4','audio/ogg'].find(m=> MediaRecorder.isTypeSupported(m)) || '';
+    recChunks = []; recStart = Date.now();
+    recorder = new MediaRecorder(recStream, mime ? { mimeType: mime } : undefined);
+    recorder.ondataavailable = ev=>{ if(ev.data.size) recChunks.push(ev.data); };
+    recorder.onstop = async ()=>{
+      recStream.getTracks().forEach(t=>t.stop());
+      const type = (recorder.mimeType || mime || 'audio/webm').split(';')[0];
+      const secs = (Date.now() - recStart)/1000;
+      recorder = null;
+      if(secs < 1){ pfToast('Hold the mic a little longer to record.'); return; }
+      if(isDemoConv(currentChat.conversationId)){ pfToast('Voice messages need a real match.'); return; }
+      try{ await postChatMedia(new Blob(recChunks, { type }), 'voice.' + (type.split('/')[1] || 'webm')); }
+      catch(err){ pfToast(err.message); }
+    };
+    recorder.start();
+    micBtn.classList.add('recording'); micBtn.title = 'Recording… release to send';
+  }
+  function stopRecording(){
+    recWantStop = true;
+    if(recorder && recorder.state === 'recording'){ recorder.stop(); }
+    micBtn.classList.remove('recording'); micBtn.title = 'Voice message';
+  }
   micBtn.addEventListener('mousedown', startRecording);
   micBtn.addEventListener('touchstart', startRecording, {passive:true});
   micBtn.addEventListener('mouseup', stopRecording);
-  micBtn.addEventListener('mouseleave', ()=>{ if(recording) stopRecording(); });
+  micBtn.addEventListener('mouseleave', stopRecording);
   micBtn.addEventListener('touchend', stopRecording);
-  function startRecording(){
-    recording = true; recordStart = Date.now();
-    micBtn.classList.add('recording');
-    micBtn.title = 'Recording… release to send';
-  }
-  function stopRecording(){
-    if(!recording) return;
-    recording = false;
-    micBtn.classList.remove('recording');
-    micBtn.title = 'Voice message';
-    const seconds = Math.max(1, Math.round((Date.now() - recordStart)/1000));
-    sendVoiceMessage(seconds);
-  }
 
   function escapeHtml(s){ const d=document.createElement('div'); d.textContent = (s == null ? '' : s); return d.innerHTML.replace(/"/g,'&quot;').replace(/'/g,'&#39;'); }
   // For values placed inside url('…') in an inline style attribute.
   function safeUrl(u){ return escapeHtml(String(u == null ? '' : u).replace(/'/g,'%27').replace(/"/g,'%22').replace(/\\/g,'%5C')); }
+  // For href/src attributes that come from the server (chat photos/audio): only plain http(s)
+  // URLs are allowed, so a javascript:/data: value can never become a clickable link.
+  function safeHttpUrl(u){
+    try{
+      const parsed = new URL(String(u == null ? '' : u), location.origin);
+      return (parsed.protocol === 'https:' || parsed.protocol === 'http:') ? safeUrl(parsed.href) : '';
+    }catch(e){ return ''; }
+  }
 
   // ---------------- Swipe cards ----------------
   const stack = document.getElementById('cardStack');
@@ -3438,6 +3737,20 @@
     swipeHistory = [];
     buildCards();
   }
+
+  // New people can join at any time: when you've run out of cards, re-check
+  // the feed whenever the tab regains focus and once a minute while it's open.
+  let feedRefreshing = false;
+  async function refreshFeedIfEmpty(){
+    if(feedRefreshing || document.hidden || !currentUserId) return;
+    if(order.length && pointer < order.length) return; // still swiping through the current deck
+    feedRefreshing = true;
+    try{ await loadDiscoveryFeed(); }catch(e){}
+    feedRefreshing = false;
+  }
+  document.addEventListener('visibilitychange', refreshFeedIfEmpty);
+  window.addEventListener('focus', refreshFeedIfEmpty);
+  setInterval(refreshFeedIfEmpty, 60000);
 
   function buildCards(){
     stack.innerHTML = '';
@@ -3484,10 +3797,6 @@
         </div>
         <div class="meta-row">
           <span class="item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg>${escapeHtml(p.job)}</span>
-        </div>
-        <div class="meta-row">
-          <span class="item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 6-9 12-9 12s-9-6-9-12a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>${escapeHtml(p.loc)}</span>
-          <span class="item">📍 ${escapeHtml(p.dist)}</span>
         </div>
       </div>`;
     }
@@ -3612,7 +3921,7 @@
     if(matches.find(m=>m.userId===p.id)) return;
     matches.unshift({ matchId, conversationId, userId:p.id, name:p.name, img:p.img, sub:"You matched! Say hi 👋", time:"now", isNew:true });
     renderMatchesLists();
-    addNotification({ icon:'💘', title:`<b>${escapeHtml(p.name)}</b> and you liked each other!`, sub:'Just now', type:'match' });
+    if(p.demo) addNotification({ icon:'💘', title:`<b>${escapeHtml(p.name)}</b> and you liked each other!`, sub:'Just now', type:'match' });
   }
 
   document.getElementById('btnLike').addEventListener('click', ()=>{
@@ -3696,7 +4005,7 @@
           <div class="ps-name">${escapeHtml(p.name)}, ${escapeHtml(p.age)} ${p.verified ? '<span class="verified"><svg viewBox="0 0 24 24" fill="#fff"><path d="M9 16.2L4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4z"/></svg></span>' : ''}</div>
           <div class="ps-meta">
             <span>💼 ${escapeHtml(p.job)}</span>
-            <span>📍 ${escapeHtml(p.loc)} · ${escapeHtml(p.dist)}</span>
+            
             ${p.online ? '<span style="color:var(--mint);">● Online now</span>' : ''}
           </div>
 
@@ -3818,8 +4127,6 @@
   document.getElementById('closeFilters').addEventListener('click', ()=> filtersPanel.classList.remove('open'));
   filtersPanel.addEventListener('click', e=>{ if(e.target === filtersPanel) filtersPanel.classList.remove('open'); });
 
-  const distRange = document.getElementById('distRange');
-  distRange.addEventListener('input', ()=>{ document.getElementById('distVal').textContent = distRange.value + ' miles'; });
   const ageRange = document.getElementById('ageRange');
   ageRange.addEventListener('input', ()=>{ document.getElementById('ageVal').textContent = '22 – ' + ageRange.value; });
 
@@ -3898,6 +4205,7 @@
   async function loadMyPhotos(){
     try{ const d = await Api.photos(); pfPhotos = d.photos || []; }catch(err){ pfPhotos = []; }
     buildPfPhotoGrid();
+    refreshPreview();
   }
   async function pfPersistOrder(){
     try{
@@ -4038,7 +4346,7 @@
       pfVerified = false;
       icon.textContent = '🛡️';
       t1.textContent = 'Get Verified';
-      t2.textContent = 'Upload a clear selfie to earn the blue badge';
+      t2.textContent = 'Quick live face check to earn the blue badge';
       pfVerifyBtn.textContent = 'Verify';
     }
   }
@@ -4052,12 +4360,95 @@
     }
   }
 
-  const selfieInput = document.createElement('input');
-  selfieInput.type = 'file';
-  selfieInput.accept = 'image/jpeg,image/png,image/webp';
-  selfieInput.setAttribute('capture', 'user'); // opens the front camera on phones
-  selfieInput.style.display = 'none';
-  document.body.appendChild(selfieInput);
+  // Live camera only (no gallery upload): two frames - neutral, then a random
+  // liveness step (smile / turn head) - are sent to the server, which checks
+  // them with face recognition and compares them to your profile photo.
+  const faceModal = document.getElementById('faceModal');
+  const faceVideo = document.getElementById('faceVideo');
+  const faceStep = document.getElementById('faceStep');
+  const faceMsg = document.getElementById('faceMsg');
+  const faceShot = document.getElementById('faceShot');
+  let faceStream = null, faceChallenge = null, faceFrames = [], faceBusy = false;
+
+  function stopFaceCamera(){
+    if(faceStream){ faceStream.getTracks().forEach(t=>t.stop()); faceStream = null; }
+    faceVideo.srcObject = null;
+  }
+  function closeFaceModal(){ stopFaceCamera(); faceModal.classList.remove('open'); faceFrames = []; faceBusy = false; }
+  function setFaceStep(){
+    if(faceFrames.length === 0){
+      faceStep.textContent = 'Step 1 of 2';
+      faceMsg.textContent = 'Look straight at the camera with a neutral face';
+      faceShot.textContent = 'Take photo 1';
+    } else {
+      faceStep.textContent = 'Step 2 of 2';
+      faceMsg.textContent = faceChallenge.instruction;
+      faceShot.textContent = 'Take photo 2';
+    }
+  }
+  function grabFrame(){
+    return new Promise(resolve=>{
+      const w = faceVideo.videoWidth || 640, h = faceVideo.videoHeight || 480;
+      const max = 960, k = Math.min(1, max / Math.max(w, h));
+      const c = document.createElement('canvas');
+      c.width = Math.round(w*k); c.height = Math.round(h*k);
+      c.getContext('2d').drawImage(faceVideo, 0, 0, c.width, c.height);
+      c.toBlob(b=> resolve(b), 'image/jpeg', 0.9);
+    });
+  }
+  async function startFaceVerification(){
+    if(!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia){
+      pfToast('Your browser can\'t open the camera. Use a recent Chrome, Safari or Edge over HTTPS.'); return;
+    }
+    pfVerifyBtn.disabled = true;
+    try{
+      faceChallenge = await Api.faceChallenge();
+      faceStream = await navigator.mediaDevices.getUserMedia({ video:{ facingMode:'user', width:{ ideal:1280 }, height:{ ideal:960 } }, audio:false });
+      faceVideo.srcObject = faceStream;
+      await faceVideo.play();
+      faceFrames = [];
+      setFaceStep();
+      faceShot.disabled = false;
+      faceModal.classList.add('open');
+    }catch(err){
+      stopFaceCamera();
+      const denied = err && (err.name === 'NotAllowedError' || err.name === 'SecurityError');
+      pfToast(denied ? 'Camera permission is needed for face verification. Allow it in your browser settings.' : (err.message || 'Could not start the camera.'));
+    }finally{ pfVerifyBtn.disabled = false; }
+  }
+  faceShot.addEventListener('click', async ()=>{
+    if(faceBusy) return;
+    faceBusy = true; faceShot.disabled = true;
+    try{
+      const blob = await grabFrame();
+      if(!blob) throw new Error('Could not capture the photo. Try again.');
+      faceFrames.push(blob);
+      if(faceFrames.length < 2){ setFaceStep(); faceShot.disabled = false; faceBusy = false; return; }
+      faceStep.textContent = 'Checking…';
+      faceMsg.textContent = 'Comparing your face with your profile photo';
+      faceShot.textContent = 'Please wait…';
+      const result = await uploadFaceFrames(faceFrames[0], faceFrames[1], faceChallenge.token);
+      closeFaceModal();
+      if(result.status === 'VERIFIED'){
+        renderVerificationState('VERIFIED');
+        refreshPreview();
+        pfToast('Face verified - you now have the blue badge!');
+      } else if(result.status === 'RETRY'){
+        pfToast(result.message || 'Verification didn\'t work. Please try again.');
+      } else if(result.status === 'REJECTED'){
+        renderVerificationState('REJECTED');
+        pfToast(result.message || 'Your selfie didn\'t match your profile photos.');
+      } else {
+        renderVerificationState(result.status);
+        pfToast(result.automatic === false ? 'Selfie submitted - a moderator will review it.' : 'Close match - a moderator will double-check it.');
+      }
+    }catch(err){
+      closeFaceModal();
+      if(err.code === 'CONFIGURATION_MISSING') pfToast('Storage or moderation isn\'t configured on the backend yet.');
+      else pfToast(err.message || 'Could not verify your face.');
+    }
+  });
+  document.getElementById('faceCancel').addEventListener('click', closeFaceModal);
 
   pfVerifyBtn.addEventListener('click', async ()=>{
     if(pfVerified) return;
@@ -4067,31 +4458,12 @@
       pfVerifyBtn.disabled = false;
       return;
     }
-    selfieInput.click();
-  });
-  selfieInput.addEventListener('change', async ()=>{
-    const file = selfieInput.files && selfieInput.files[0];
-    selfieInput.value = '';
-    if(!file) return;
-    pfVerifyBtn.textContent = 'Uploading…';
-    pfVerifyBtn.disabled = true;
-    try{
-      const result = await uploadVerificationSelfie(file);
-      renderVerificationState(result.status);
-      pfToast('Selfie submitted — a moderator will review it.');
-    }catch(err){
-      pfVerifyBtn.textContent = 'Verify';
-      pfVerifyBtn.disabled = false;
-      if(err.code === 'CONFIGURATION_MISSING') pfToast('Storage or moderation isn\'t configured on the backend yet.');
-      else pfToast(err.message || 'Could not submit your selfie.');
-    }
+    startFaceVerification();
   });
 
   // -- Preferences sliders / switches --
   const pfAgeRange = document.getElementById('pfAgeRange');
   pfAgeRange.addEventListener('input', ()=>{ document.getElementById('pfAgeRangeVal').textContent = '18 – ' + pfAgeRange.value; });
-  const pfDistRange = document.getElementById('pfDistRange');
-  pfDistRange.addEventListener('input', ()=>{ document.getElementById('pfDistVal').textContent = pfDistRange.value + ' km'; });
 
   // -- Preview rendering --
   function pfAge(){
@@ -4101,7 +4473,10 @@
     return age;
   }
   function refreshPreview(){
-    const mainPhoto = pfPhotos.length ? pfPhotos[0].urls.large : PLACEHOLDER_AVATAR;
+    // First picture in the user's own photo order (skip any that have no
+    // image URL yet, e.g. still processing).
+    const firstPic = pfPhotos.find(ph => ph && ph.urls && (ph.urls.large || ph.urls.medium || ph.urls.thumbnail));
+    const mainPhoto = firstPic ? (firstPic.urls.large || firstPic.urls.medium || firstPic.urls.thumbnail) : PLACEHOLDER_AVATAR;
     document.getElementById('pfPreviewImg').style.backgroundImage = `url('${mainPhoto}')`;
     document.getElementById('pfPreviewName').textContent = `${document.getElementById('pfName').value.split(' ')[0] || 'You'}, ${pfAge()}`;
     document.getElementById('pfPreviewVerifiedBadge').style.display = pfVerified ? '' : 'none';
@@ -4130,7 +4505,6 @@
       document.querySelectorAll('#pfInterests .pill').forEach(pl=> pl.classList.toggle('sel', mine.has(pl.dataset.i.toLowerCase())));
       if(p.preferences){
         pfAgeRange.value = p.preferences.maxAge; pfAgeRange.dispatchEvent(new Event('input'));
-        pfDistRange.value = Math.min(200, p.preferences.maxDistanceKm); pfDistRange.dispatchEvent(new Event('input'));
         const g = p.preferences.genders || [];
         document.getElementById('pfShowMe').value = g.length >= 3 ? 'EVERYONE' : (g[0] === 'MAN' ? 'MAN' : g[0] === 'WOMAN' ? 'WOMAN' : 'EVERYONE');
         pfMinAge = p.preferences.minAge;
@@ -4151,16 +4525,14 @@
     btn.textContent = 'Saving…'; btn.disabled = true;
     const showMe = document.getElementById('pfShowMe').value;
     const genders = showMe === 'EVERYONE' ? ['MAN','WOMAN','NONBINARY'] : [showMe];
-    const locOpt = document.getElementById('pfLoc').selectedOptions[0];
     const name = document.getElementById('pfName').value.trim();
     const steps = [
       ['profile', ()=> Api.updateProfile(Object.assign(
         { bio: document.getElementById('pfBio').value.trim(), occupation: document.getElementById('pfJob').value.trim(), education: document.getElementById('pfSchool').value.trim() },
         name ? { displayName: name } : {}))],
       ['interests', ()=> Api.updateInterests(pfSelectedInterests())],
-      ['preferences', ()=> Api.updatePreferences({ minAge: Math.min(pfMinAge, parseInt(pfAgeRange.value,10)), maxAge: parseInt(pfAgeRange.value,10), maxDistanceKm: parseInt(pfDistRange.value,10), genders })],
+      ['preferences', ()=> Api.updatePreferences({ minAge: Math.min(pfMinAge, parseInt(pfAgeRange.value,10)), maxAge: parseInt(pfAgeRange.value,10), genders })],
     ];
-    if(locOpt && locOpt.dataset.lat) steps.push(['location', ()=> Api.updateLocation(parseFloat(locOpt.dataset.lat), parseFloat(locOpt.dataset.lng))]);
     let failed = null;
     for(const [label, fn] of steps){
       try{ await fn(); }catch(err){ failed = `${label}: ${err.message}`; break; }
@@ -4225,24 +4597,19 @@
   });
 
   // -- Notifications --
-  let notifications = [];
   function addNotification(n){
     notifications.unshift(Object.assign({unread:true}, n));
     renderNotifications();
   }
   function renderNotifications(){
     const list = document.getElementById('notifList');
-    const unreadCount = notifications.filter(n=>n.unread).length;
-    document.querySelectorAll('#notifNavBadge, #notifBellBadge').forEach(b=>{
-      b.textContent = unreadCount;
-      b.style.display = unreadCount ? '' : 'none';
-    });
+    updateBadges();
     if(notifications.length === 0){
       list.innerHTML = `<div class="notif-empty">You're all caught up! 🎉<br>New matches, messages, and likes will show up here.</div>`;
       return;
     }
     list.innerHTML = notifications.map((n,i)=>`
-      <div class="notif-item ${n.unread ? 'unread' : ''}" data-idx="${i}">
+      <div class="notif-item ${n.unread ? 'unread' : ''}" data-idx="${i}" style="cursor:pointer;">
         <div class="notif-icon">${n.icon}</div>
         <div class="notif-body">
           <div class="t1">${n.title}</div>
@@ -4254,31 +4621,91 @@
       item.addEventListener('click', ()=>{
         const idx = parseInt(item.dataset.idx, 10);
         const n = notifications[idx];
+        if(!n) return;
         n.unread = false;
         if(n.id) Api.markNotificationRead(n.id).catch(()=>{});
         renderNotifications();
+        goToNotificationTarget(n);
       });
     });
   }
   renderNotifications();
 
+  // Where tapping a notification takes you.
+  function goToNotificationTarget(n){
+    const raw = n.raw || {};
+    const payload = raw.payload || {};
+    if(raw.type === 'LIKE'){ setActiveNav('likes'); return; }
+    if(raw.type === 'MATCH' || raw.type === 'MESSAGE'){
+      const m = matches.find(x=> (payload.conversationId && x.conversationId === payload.conversationId) || (payload.matchId && x.matchId === payload.matchId) || (payload.fromUserId && x.userId === payload.fromUserId) || (payload.withUserId && x.userId === payload.withUserId));
+      if(m){ openChat(m); setActiveNav('chat'); }
+      else setActiveNav('matches');
+    }
+  }
+
+  // Live banner + (when allowed and the tab is in the background) a real
+  // system notification, so new matches / messages / likes aren't missed.
+  let liveToastTimer = null;
+  function showLiveToast(ui, onClick){
+    let el = document.getElementById('liveToast');
+    if(!el){ el = document.createElement('div'); el.id = 'liveToast'; el.className = 'live-toast'; document.body.appendChild(el); }
+    el.innerHTML = `<div class="lt-ico">${ui.icon}</div><div style="min-width:0;"><div class="lt-t">${ui.title}</div><div class="lt-s">${ui.hint || 'Just now'}</div></div>`;
+    el.onclick = ()=>{ el.classList.remove('show'); if(onClick) onClick(); };
+    requestAnimationFrame(()=> el.classList.add('show'));
+    clearTimeout(liveToastTimer);
+    liveToastTimer = setTimeout(()=> el.classList.remove('show'), 5000);
+  }
+  function announceNotification(n, ui){
+    if(disabledNotifTypes.includes(n.type)) return;
+    const plain = ui.title.replace(/<[^>]+>/g,'');
+    if(document.hidden && 'Notification' in window && Notification.permission === 'granted'){
+      try{
+        const sys = new Notification('Matchify', { body: plain, tag: n.id || undefined, icon: '/icon-192.png' });
+        sys.onclick = ()=>{ window.focus(); sys.close(); goToNotificationTarget(ui); };
+      }catch(e){ /* some mobile browsers only allow service-worker notifications */ }
+      return;
+    }
+    if(!document.hidden) showLiveToast(ui, ()=> goToNotificationTarget(ui));
+  }
+
+  // Ask for permission with a clear button (browsers require a user gesture).
+  function refreshNotifPermBanner(){
+    const banner = document.getElementById('notifPermBanner');
+    if(!banner) return;
+    const show = 'Notification' in window && Notification.permission === 'default';
+    banner.style.display = show ? 'flex' : 'none';
+  }
+  document.getElementById('notifPermBtn').addEventListener('click', async ()=>{
+    try{
+      const perm = await Notification.requestPermission();
+      refreshNotifPermBanner();
+      if(perm === 'granted'){
+        pfToast('Alerts on 🔔');
+        // Also subscribe this device for background push when the server supports it.
+        if(!pushToggle.classList.contains('on')) pushToggle.click();
+      } else pfToast('Alerts are blocked — enable them in your browser settings.');
+    }catch(e){ pfToast('This browser doesn\'t support alerts.'); }
+  });
+  refreshNotifPermBanner();
+
   function describeNotification(n){
     const payload = n.payload || {};
     const other = payload.withUserId ? matches.find(m=>m.userId===payload.withUserId) : null;
-    const who = other ? `<b>${escapeHtml(other.name)}</b>` : 'Someone';
+    const matchName = payload.withName || (other && other.name) || '';
     switch(n.type){
-      case 'MATCH': return { icon:'💘', title:`${who} and you liked each other!`, type:'match' };
-      case 'MESSAGE': return { icon:'💬', title:'You have a new message', type:'message' };
+      case 'MATCH': return { icon:'💘', title: matchName ? `It's a match with <b>${escapeHtml(matchName)}</b>!` : `It's a match! 🎉`, hint:'Say hi 👋', type:'match' };
+      case 'LIKE': return { icon:'💗', title:'Someone liked you!', hint:'See who in Likes You', type:'like' };
+      case 'MESSAGE': return { icon:'💬', title: payload.fromName ? `<b>${escapeHtml(payload.fromName)}</b> sent you a message` : 'You have a new message', hint:'Tap to reply', type:'message' };
       case 'CALL': return { icon:'📞', title:'You have a call', type:'call' };
       case 'VERIFICATION': return { icon:'✅', title:'Your verification status changed', type:'system' };
-      case 'PAYMENT': return { icon:'💳', title:'Payment update', type:'system' };
+      case 'PAYMENT': case 'SUBSCRIPTION': return { icon:'💳', title:'Subscription update', type:'system' };
       case 'SECURITY': return { icon:'🔒', title:'Security notice on your account', type:'system' };
       default: return { icon:'🔔', title:'Notification', type:'system' };
     }
   }
   function toUiNotification(n){
     const d = describeNotification(n);
-    return { id:n.id, icon:d.icon, title:d.title, sub:new Date(n.createdAt).toLocaleString([], {month:'short', day:'numeric', hour:'numeric', minute:'2-digit'}), type:d.type, unread:!n.readAt };
+    return { id:n.id, raw:n, icon:d.icon, title:d.title, hint:d.hint, sub:new Date(n.createdAt).toLocaleString([], {month:'short', day:'numeric', hour:'numeric', minute:'2-digit'}), type:d.type, unread:!n.readAt };
   }
   async function loadNotifications(){
     try{
@@ -4298,7 +4725,7 @@
   // Settings toggles. Only the ones backed by a real backend setting do anything;
   // the rest say so instead of flipping a switch that changes nothing (a fake
   // "Two-factor authentication: on" would be actively misleading).
-  const NOTIF_TYPE_FOR_SETTING = { notifMatches:'MATCH', notifMessages:'MESSAGE' };
+  const NOTIF_TYPE_FOR_SETTING = { notifMatches:'MATCH', notifMessages:'MESSAGE', notifLikes:'LIKE' };
   let disabledNotifTypes = [];
   document.querySelectorAll('#view-settings .switch[data-setting]').forEach(sw=>{
     const key = sw.dataset.setting;
@@ -4386,14 +4813,6 @@
     });
   });
 
-  // -- Settings: distance unit --
-  document.querySelectorAll('#view-settings [data-unit]').forEach(btn=>{
-    btn.addEventListener('click', ()=>{
-      document.querySelectorAll('#view-settings [data-unit]').forEach(b=>b.classList.remove('sel'));
-      btn.classList.add('sel');
-      pfToast(`Distance shown in ${btn.dataset.unit}`);
-    });
-  });
   document.getElementById('languageSelect').addEventListener('change', e=>{
     pfToast(`Language set to ${e.target.value}`);
   });
@@ -4602,15 +5021,17 @@
             pfToast('Payment confirmed — welcome aboard 🎉');
             setActiveNav('discover');
           }catch(err){ pfToast(err.message || 'We could not verify that payment. If you were charged, contact support.'); }
+          finally{ paying = false; }
         },
         modal: { ondismiss: ()=>{ paying = false; } },
       });
-      rzp.on('payment.failed', r=>{ pfToast((r && r.error && r.error.description) || 'Payment failed.'); });
+      rzp.on('payment.failed', r=>{ paying = false; pfToast((r && r.error && r.error.description) || 'Payment failed.'); });
       rzp.open();
     }catch(err){
+      paying = false; // checkout never opened; on success it is released by the handler / dismiss callback
       if(err.code === 'CONFIGURATION_MISSING') pfToast('Payments aren\'t configured yet.');
       else pfToast(err.message || 'Could not start checkout.');
-    }finally{ paying = false; }
+    }
   });
   document.getElementById('cancelSubBtn').addEventListener('click', ()=>{
     openConfirm({
@@ -4633,7 +5054,7 @@
       return;
     }
     const matchHits = matches.filter(m=> m.name.toLowerCase().includes(q));
-    const msgHits = chatSeed.filter(m=> m.text.toLowerCase().includes(q));
+    const msgHits = [];
     let html = '';
     if(matchHits.length){
       html += `<div class="ps-section-title" style="margin-top:0;">Matches</div>`;

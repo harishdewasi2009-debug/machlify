@@ -62,6 +62,15 @@ export async function deleteObject(key: string): Promise<void> {
   await client!.send(new DeleteObjectCommand({ Bucket: env.S3_BUCKET, Key: key }));
 }
 
+// Reads an object's bytes back (used to compare a live selfie against the
+// user's own profile photo during face verification).
+export async function getObjectBuffer(key: string): Promise<Buffer> {
+  if (!client) return fs.readFile(localPath(key));
+  const out = await client!.send(new GetObjectCommand({ Bucket: env.S3_BUCKET, Key: key }));
+  const bytes = await out.Body!.transformToByteArray();
+  return Buffer.from(bytes);
+}
+
 // Returns a URL the frontend can load an image from directly. If
 // S3_PUBLIC_BASE_URL is configured (bucket/CDN is public), build a plain
 // URL; otherwise generate a short-lived signed URL so private storage

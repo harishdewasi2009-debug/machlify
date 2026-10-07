@@ -26,11 +26,14 @@ import { randomChatRouter } from "./routes/randomChat.routes";
 import * as verificationController from "./controllers/verification.controller";
 import * as paymentController from "./controllers/payment.controller";
 import { asyncHandler } from "./utils/asyncHandler";
+import { csrfOriginGuard, staticPageSecurityHeaders, uploadedFileHeaders } from "./middleware/security.middleware";
+import { apiRateLimiter } from "./middleware/rateLimit.middleware";
 
 export const app = express();
 // Behind Render's proxy: without this every visitor shares the proxy's IP, so the
 // login/register rate limits were being used up by ALL users together.
 app.set("trust proxy", 1);
+app.disable("x-powered-by");
 
 // Serve the frontend (index.html, admin.html, sw.js) from the same server, so
 // the website and the API share one address (no CORS/cookie problems).
@@ -39,12 +42,16 @@ app.set("trust proxy", 1);
 const frontendDir = [path.resolve(__dirname, "../../frontend"), path.resolve(__dirname, "../frontend")].find((dir) =>
   fs.existsSync(path.join(dir, "index.html"))
 );
+// The static pages get their own header set (anti-clickjacking etc.) because helmet's strict CSP
+// can't be applied to pages with inline scripts.
 if (frontendDir) {
-  app.use(express.static(frontendDir));
+  app.use(staticPageSecurityHeaders, express.static(frontendDir, { dotfiles: "ignore" }));
 }
 
 app.use(helmet({ crossOriginResourcePolicy: { policy: "cross-origin" } }));
 // Local photo storage fallback (used when S3 is not configured). Only profile photos are exposed.
+app.use("/uploads", uploadedFileHeaders);
+app.use("/uploads/chat", express.static(path.join(path.resolve(env.UPLOAD_DIR), "chat"), { maxAge: "7d" }));
 app.use("/uploads/users", express.static(path.join(path.resolve(env.UPLOAD_DIR), "users"), { maxAge: "7d" }));
 // Requests with no Origin header (same-origin page loads, curl) are always allowed.
 app.use(
@@ -78,6 +85,10 @@ app.post(
 
 app.use(express.json({ limit: "1mb" }));
 app.use(cookieParser());
+
+// Broad per-IP request cap, then CSRF protection for every cookie-authenticated API route.
+// (The Stripe/Razorpay webhooks above are registered earlier and are signature-verified instead.)
+app.use("/api", apiRateLimiter, csrfOriginGuard);
 
 app.get("/health", (_req, res) => res.json({ success: true, data: { status: "ok" } }));
 

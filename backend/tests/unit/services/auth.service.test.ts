@@ -71,22 +71,23 @@ describe("registerUser", () => {
     await expect(registerUser(baseInput)).rejects.toMatchObject({ code: "EMAIL_IN_USE" });
   });
 
-  it("creates the user and a verification token; with no SMTP configured it marks the email verified instead of failing", async () => {
+  it("turns a unique-constraint race on the email into EMAIL_IN_USE (not a 500)", async () => {
+    prismaMock.user.findUnique.mockResolvedValue(null);
+    prismaMock.user.create.mockRejectedValue({ code: "P2002" });
+    await expect(registerUser(baseInput)).rejects.toMatchObject({ code: "EMAIL_IN_USE" });
+  });
+
+  it("creates the account already verified, with no verification email or token", async () => {
     prismaMock.user.findUnique.mockResolvedValue(null);
     prismaMock.user.create.mockResolvedValue({ id: "user_1", email: baseInput.email } as any);
-    prismaMock.emailVerificationToken.create.mockResolvedValue({} as any);
-    prismaMock.user.update.mockResolvedValue({} as any);
 
     const result = await registerUser(baseInput);
 
     expect(result).toEqual({ id: "user_1", email: baseInput.email });
     expect(prismaMock.user.create).toHaveBeenCalledTimes(1);
-    expect(prismaMock.emailVerificationToken.create).toHaveBeenCalledTimes(1);
+    expect(prismaMock.user.create.mock.calls[0][0].data).toMatchObject({ emailVerified: true });
+    expect(prismaMock.emailVerificationToken.create).not.toHaveBeenCalled();
     expect(emailService.sendVerificationEmail).not.toHaveBeenCalled();
-    expect(prismaMock.user.update).toHaveBeenCalledWith({
-      where: { id: "user_1" },
-      data: { emailVerified: true },
-    });
   });
 });
 

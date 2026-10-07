@@ -9,12 +9,14 @@ export interface AccessTokenPayload {
 
 export function signAccessToken(payload: AccessTokenPayload): string {
   return jwt.sign(payload, env.JWT_ACCESS_SECRET, {
+    algorithm: "HS256",
     expiresIn: `${env.ACCESS_TOKEN_TTL_MIN}m`,
   });
 }
 
 export function verifyAccessToken(token: string): AccessTokenPayload {
-  return jwt.verify(token, env.JWT_ACCESS_SECRET) as AccessTokenPayload;
+  // Pin the algorithm so a token can never be accepted under a different one (e.g. "none").
+  return jwt.verify(token, env.JWT_ACCESS_SECRET, { algorithms: ["HS256"] }) as AccessTokenPayload;
 }
 
 // Opaque, high-entropy tokens for refresh / email-verification / password-reset.

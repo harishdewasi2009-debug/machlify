@@ -140,6 +140,7 @@ export async function reorderPhotos(userId: string, order: string[]): Promise<vo
       prisma.photo.update({ where: { id: photoId }, data: { position: index } })
     )
   );
+  await recomputeDiscoverability(userId);
 }
 
 export async function setPrimaryPhoto(userId: string, photoId: string): Promise<void> {
@@ -153,6 +154,12 @@ export async function setPrimaryPhoto(userId: string, photoId: string): Promise<
     prisma.photo.updateMany({ where: { userId }, data: { isPrimary: false } }),
     prisma.photo.update({ where: { id: photoId }, data: { isPrimary: true } }),
   ]);
+  // Keep the order in step: the chosen picture moves to the front.
+  const others = await prisma.photo.findMany({ where: { userId, id: { not: photoId } }, orderBy: { position: "asc" }, select: { id: true } });
+  await prisma.$transaction(
+    [photoId, ...others.map((o) => o.id)].map((id, index) => prisma.photo.update({ where: { id }, data: { position: index } }))
+  );
+  await recomputeDiscoverability(userId);
 }
 
 export async function deletePhoto(userId: string, photoId: string): Promise<void> {

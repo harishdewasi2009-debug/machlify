@@ -81,6 +81,16 @@ describe("recordSwipe — pass and one-sided like", () => {
     expect(prismaMock.swipe.findUnique).toHaveBeenCalledTimes(1);
   });
 
+  it("a double-tap that hits the unique constraint is reported as ALREADY_SWIPED, not a 500", async () => {
+    prismaMock.user.findUnique
+      .mockResolvedValueOnce(VERIFIED_ACTOR as any)
+      .mockResolvedValueOnce({ id: "user_2", status: "ACTIVE" } as any);
+    prismaMock.swipe.findUnique.mockResolvedValueOnce(null);
+    prismaMock.swipe.create.mockRejectedValueOnce({ code: "P2002" });
+
+    await expect(recordSwipe("user_1", "user_2", true)).rejects.toMatchObject({ code: "ALREADY_SWIPED" });
+  });
+
   it("a like with no reciprocal like yet is not a match", async () => {
     prismaMock.user.findUnique
       .mockResolvedValueOnce(VERIFIED_ACTOR as any)

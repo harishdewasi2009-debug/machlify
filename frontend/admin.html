@@ -108,7 +108,18 @@
 
 <script>
 (function(){
-  const API_BASE = window.MATCHIFY_API_BASE || 'https://machlify.onrender.com';
+  // Same logic as index.html: when this page is served by the backend itself (Render, local dev,
+  // or any host that proxies /api to it), talk to that same origin so the admin cookie just works.
+  // Only fall back to the hosted API when the page is opened from somewhere that has no backend
+  // (e.g. a static file host) — and even then you can override with window.MATCHIFY_API_BASE.
+  const API_BASE = (function(){
+    if(window.MATCHIFY_API_BASE) return window.MATCHIFY_API_BASE;
+    if(location.protocol.startsWith('http') && location.hostname !== '') {
+      const h = location.hostname;
+      if(h === 'localhost' || h === '127.0.0.1' || /\.onrender\.com$/.test(h)) return location.origin;
+    }
+    return 'https://machlify.onrender.com';
+  })();
 
   async function apiFetch(path, options = {}){
     let res;
@@ -160,7 +171,7 @@
     auditLogs: cursor => apiFetch(`/api/admin/audit-logs?${qs({cursor})}`),
   };
   function qs(o){ return Object.entries(o).filter(([,v])=>v).map(([k,v])=>`${k}=${encodeURIComponent(v)}`).join('&'); }
-  function esc(s){ const d=document.createElement('div'); d.textContent = s==null?'':s; return d.innerHTML; }
+  function esc(s){ const d=document.createElement('div'); d.textContent = s==null?'':s; return d.innerHTML.replace(/"/g,'&quot;').replace(/'/g,'&#39;'); }
   function fmt(dt){ return dt ? new Date(dt).toLocaleString([], {month:'short',day:'numeric',hour:'numeric',minute:'2-digit'}) : ''; }
 
   let toastTimer;
@@ -182,7 +193,11 @@
       const data = await Api.login(email, password);
       me = data.admin;
       boot();
-    }catch(e){ err.textContent = e.message || 'Login failed.'; }
+    }catch(e){
+      err.textContent = e.status === 503
+        ? 'Admin login is not set up on this server yet (ADMIN_JWT_SECRET is missing). See DEMO_ACCOUNT.md.'
+        : (e.message || 'Login failed.');
+    }
   }
   document.getElementById('logoutBtn').addEventListener('click', async ()=>{
     try{ await Api.logout(); }catch(e){}
@@ -191,7 +206,7 @@
 
   // Try an existing admin session before showing the login form.
   (async ()=>{
-    try{ const data = await Api.me(); me = data.admin; boot(); }
+    try{ const data = await Api.me(); me = (data && data.admin) || data; if(!me || !me.email) throw new Error('no admin'); boot(); }
     catch(e){ /* not logged in — show login screen (already visible by default) */ }
   })();
 

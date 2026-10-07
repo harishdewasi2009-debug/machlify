@@ -8,3 +8,4 @@ export const swipeRouter = Router();
 swipeRouter.use(requireAuth);
 
 swipeRouter.post("/", asyncHandler(swipeController.create));
+swipeRouter.get("/likes-you", asyncHandler(swipeController.likesYou));

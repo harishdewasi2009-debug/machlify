@@ -6,8 +6,8 @@ export async function listMatches(userId: string) {
   const matches = await prisma.match.findMany({
     where: { OR: [{ userAId: userId }, { userBId: userId }], status: "ACTIVE" },
     include: {
-      userA: { include: { profile: true, photos: { where: { isPrimary: true }, take: 1 } } },
-      userB: { include: { profile: true, photos: { where: { isPrimary: true }, take: 1 } } },
+      userA: { include: { profile: true, photos: { where: { status: "APPROVED" }, orderBy: [{ isPrimary: "desc" }, { position: "asc" }], take: 1 } } },
+      userB: { include: { profile: true, photos: { where: { status: "APPROVED" }, orderBy: [{ isPrimary: "desc" }, { position: "asc" }], take: 1 } } },
       conversation: true,
     },
     orderBy: { createdAt: "desc" },

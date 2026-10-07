@@ -19,12 +19,17 @@ export async function verifyGoogleIdToken(idToken: string): Promise<GoogleIdenti
     throw Errors.configurationMissing("Google OAuth");
   }
 
-  const ticket = await client.verifyIdToken({
-    idToken,
-    audience: env.GOOGLE_CLIENT_ID,
-  });
-
-  const payload = ticket.getPayload();
+  let payload;
+  try {
+    const ticket = await client.verifyIdToken({
+      idToken,
+      audience: env.GOOGLE_CLIENT_ID,
+    });
+    payload = ticket.getPayload();
+  } catch {
+    // A bad/expired/wrong-audience token is the caller's problem (401-class), not a server crash.
+    throw Errors.invalidToken();
+  }
   if (!payload || !payload.sub || !payload.email) {
     throw Errors.invalidToken();
   }
